@@ -23,7 +23,6 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 	size_t linelen = 0;
 	int size = getline(&line, &linelen, stdin);
 	std::string cmd(line,size);
-	std::cout << "msg is " << cmd;
 	std::string buf;
 	std::stringstream ss(cmd);
 	ss >> buf;
@@ -80,10 +79,8 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 		TOX_ERR_FRIEND_ADD error;
 		hex_string_to_bin(buf.c_str(),peerbinary);
 		tox_friend_add(tox, (uint8_t*)peerbinary, (uint8_t*)msg,strlen(msg),&error);
-		printf("err code %d\n",error);
 		switch (error) {
 		case TOX_ERR_FRIEND_ADD_OK:
-			puts("no error");
 			break;
 		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
 			puts("already sent");
@@ -91,7 +88,28 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
 			puts("crc error");
 			break;
+		default:
+			printf("err code %d\n",error);
 		}
+	} else if (buf == "whitelist") {
+		ss >> buf;
+		uint8_t peerbinary[TOX_PUBLIC_KEY_SIZE];
+		TOX_ERR_FRIEND_ADD error;
+		hex_string_to_bin(buf.c_str(),peerbinary);
+		tox_friend_add_norequest(tox,peerbinary,&error);
+		switch (error) {
+		case TOX_ERR_FRIEND_ADD_OK:
+			break;
+		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
+			puts("already sent");
+			break;
+		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
+			puts("crc error");
+			break;
+		default:
+			printf("err code %d\n",error);
+		}
+		saveState(tox);
 	} else if (buf == "status") {
 		uint8_t toxid[TOX_ADDRESS_SIZE];
 		tox_self_get_address(tox,toxid);
@@ -100,9 +118,10 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 		to_hex(tox_printable_id, toxid,TOX_ADDRESS_SIZE);
 		printf("my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
 	} else if (buf == "help") {
-		cout << "list            - lists tox friends" << endl;
-		cout << "remove <number> - removes a friend, get the number from list" << endl;
-		cout << "add <toxid>     - adds a friend" << endl;
-		cout << "status          - shows your own id&ip" << endl;
+		cout << "list              - lists tox friends" << endl;
+		cout << "remove <number>   - removes a friend, get the number from list" << endl;
+		cout << "add <toxid>       - adds a friend" << endl;
+		cout << "whitelist <toxid> - add/accept a friend" << endl;
+		cout << "status            - shows your own id&ip" << endl;
 	}
 }

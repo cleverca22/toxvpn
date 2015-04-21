@@ -58,12 +58,11 @@ void saveState(Tox *tox) {
 	close(fd);
 }
 void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data) {
-	char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
-	int friendnumber = tox_friend_add_norequest(tox, public_key,NULL);
+	char tox_printable_id[TOX_PUBLIC_KEY_SIZE * 2 + 1];
 
 	memset(tox_printable_id, 0, sizeof(tox_printable_id));
-	to_hex(tox_printable_id, public_key,TOX_ADDRESS_SIZE);
-	printf("Accepted friend request from %s(%s) as %d\n", tox_printable_id, message, friendnumber);
+	to_hex(tox_printable_id, public_key,TOX_PUBLIC_KEY_SIZE);
+	printf("Friend request: %s\nto accept, run 'whitelist %s'\n", message, tox_printable_id);
 	saveState(tox);
 }
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
