@@ -88,7 +88,6 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 }
 void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data) {
 	if (data[0] == 200) {
-		std::cout << "sending to tun" << std::endl;
 		if (tunnels[friend_number]) tunnels[friend_number]->processPacket(data+1,length-1);
 	}
 }
