@@ -67,6 +67,10 @@ Tunnel::Tunnel(int friend_number,std::string myip, std::string peerip) {
 	this->event.data.ptr = this;
 	epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event);
 }
+Tunnel::~Tunnel() {
+	epoll_ctl(epoll_handle, EPOLL_CTL_DEL, this->handle, NULL);
+	close(this->handle);
+}
 void Tunnel::handleData(struct epoll_event &eventin, Tox *tox) {
 	uint8_t buffer[1501];
 	if (eventin.events & EPOLLIN) {

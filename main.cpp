@@ -47,6 +47,16 @@ void to_hex(char *a, const uint8_t *p, int size) {
 		a[i*2+1] = buffer[1];
 	}
 }
+void saveState(Tox *tox) {
+	int size = tox_get_savedata_size(tox);
+	uint8_t *savedata = new uint8_t[size];
+	tox_get_savedata(tox,savedata);
+	int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
+	assert(fd);
+	int written = write(fd,savedata,size);
+	assert(written == size);
+	close(fd);
+}
 void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data) {
 	char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
 	int friendnumber = tox_friend_add_norequest(tox, public_key,NULL);
@@ -54,6 +64,7 @@ void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t 
 	memset(tox_printable_id, 0, sizeof(tox_printable_id));
 	to_hex(tox_printable_id, public_key,TOX_ADDRESS_SIZE);
 	printf("Accepted friend request from %s(%s) as %d\n", tox_printable_id, message, friendnumber);
+	saveState(tox);
 }
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
@@ -73,6 +84,7 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 	} else {
 		printf("unable to parse status, ignoring\n");
 	}
+	saveState(tox);
 }
 void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data) {
 	if (data[0] == 200) {
@@ -96,16 +108,7 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
 		puts("udp connection established");
 		break;
 	}
-}
-void saveState(Tox *tox) {
-	int size = tox_get_savedata_size(tox);
-	uint8_t *savedata = new uint8_t[size];
-	tox_get_savedata(tox,savedata);
-	int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
-	assert(fd);
-	int written = write(fd,savedata,size);
-	assert(written == size);
-	close(fd);
+	saveState(tox);
 }
 int main(int argc, char **argv) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
@@ -175,28 +178,6 @@ int main(int argc, char **argv) {
 
 	/* Bootstrap from the node defined above */
 	if (want_bootstrap) tox_bootstrap(my_tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
-
-	if (argc >= 3) {
-		const char *peer = argv[2];
-		printf("going to connect to %s\n",peer);
-		const char *msg = "vpn_test";
-		uint8_t peerbinary[TOX_ADDRESS_SIZE];
-		TOX_ERR_FRIEND_ADD error;
-		hex_string_to_bin(peer,peerbinary);
-		tox_friend_add(my_tox, (uint8_t*)peerbinary, (uint8_t*)msg,strlen(msg),&error);
-		printf("err code %d\n",error);
-		switch (error) {
-		case TOX_ERR_FRIEND_ADD_OK:
-			puts("no error");
-			break;
-		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
-			puts("already sent");
-			break;
-		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
-			puts("crc error");
-			break;
-		}
-	}
 
 	while (keep_running) {
 		tox_iterate(my_tox); // will call the callback functions defined and registered

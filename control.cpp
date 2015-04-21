@@ -7,6 +7,8 @@
 #include <sstream>
 
 #include "control.h"
+#include "main.h"
+#include "tunnel.h"
 
 using namespace std;
 Control::Control() {
@@ -34,6 +36,18 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 		for (int i=0; i<friendCount; i++) {
 			int friendid = friends[i];
 			TOX_CONNECTION conn_status = tox_friend_get_connection_status(tox,friendid,NULL);
+			string statusString;
+			switch (conn_status) {
+			case TOX_CONNECTION_NONE:
+				statusString = "offline";
+				break;
+			case TOX_CONNECTION_TCP:
+				statusString = "tcp";
+				break;
+			case TOX_CONNECTION_UDP:
+				statusString = "udp";
+				break;
+			}
 			uint64_t lastonline = tox_friend_get_last_online(tox,friendid,NULL);
 			size_t namesize = tox_friend_get_name_size(tox,friendid,&fqerror);
 			uint8_t *friendname = new uint8_t[namesize+1];
@@ -44,13 +58,51 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 			tox_friend_get_status_message(tox,friendid,status,NULL);
 			status[statusSize] = 0;
 			uint32_t hack = lastonline;
-			printf("friend#%2d name:%15s status:%30s lastonline:%d\n",friendid,friendname,status,hack);
+			printf("friend#%2d name:%15s status:%10s %30s lastonline:%d\n",friendid,friendname,statusString.c_str(),status,hack);
 			delete friendname;
 			delete status;
 		}
 		delete friends;
+	} else if (buf == "remove") {
+		int friendid;
+		ss >> friendid;
+		printf("going to kick %d\n",friendid);
+		tox_friend_delete(tox,friendid,NULL);
+		if (tunnels[friendid]) {
+			delete tunnels[friendid];
+			tunnels[friendid] = NULL;
+		}
+	} else if (buf == "add") {
+		ss >> buf;
+		printf("going to connect to %s\n",buf.c_str());
+		const char *msg = "toxvpn";
+		uint8_t peerbinary[TOX_ADDRESS_SIZE];
+		TOX_ERR_FRIEND_ADD error;
+		hex_string_to_bin(buf.c_str(),peerbinary);
+		tox_friend_add(tox, (uint8_t*)peerbinary, (uint8_t*)msg,strlen(msg),&error);
+		printf("err code %d\n",error);
+		switch (error) {
+		case TOX_ERR_FRIEND_ADD_OK:
+			puts("no error");
+			break;
+		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
+			puts("already sent");
+			break;
+		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
+			puts("crc error");
+			break;
+		}
+	} else if (buf == "status") {
+		uint8_t toxid[TOX_ADDRESS_SIZE];
+		tox_self_get_address(tox,toxid);
+		char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
+		memset(tox_printable_id, 0, sizeof(tox_printable_id));
+		to_hex(tox_printable_id, toxid,TOX_ADDRESS_SIZE);
+		printf("my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
+	} else if (buf == "help") {
+		cout << "list            - lists tox friends" << endl;
+		cout << "remove <number> - removes a friend, get the number from list" << endl;
+		cout << "add <toxid>     - adds a friend" << endl;
+		cout << "status          - shows your own id&ip" << endl;
 	}
-	//while (ss >> buf) {
-		//std::cout << "word is " << buf << std::endl;
-	//}
 }
