@@ -97,6 +97,16 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
 		break;
 	}
 }
+void saveState(Tox *tox) {
+	int size = tox_get_savedata_size(tox);
+	uint8_t *savedata = new uint8_t[size];
+	tox_get_savedata(tox,savedata);
+	int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
+	assert(fd);
+	int written = write(fd,savedata,size);
+	assert(written == size);
+	close(fd);
+}
 int main(int argc, char **argv) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
 	hex_string_to_bin(BOOTSTRAP_KEY, bootstrap_pub_key);
@@ -154,6 +164,7 @@ int main(int argc, char **argv) {
 	uname(&hostinfo);
 	tox_self_set_name(my_tox, (const uint8_t*)hostinfo.nodename, strlen(hostinfo.nodename), NULL); // Sets the username
 	std::string json = fw.write(root);
+	if (json[json.length()-1] == '\n') json.erase(json.length()-1, 1);
 	tox_self_set_status_message(my_tox, (const uint8_t*)json.data(), json.length(), NULL); // Sets the status message
 
 	/* Set the user status to TOX_USER_STATUS_NONE. Other possible values:
@@ -195,21 +206,13 @@ int main(int argc, char **argv) {
 		if (count == -1) std::cout << "epoll error " << strerror(errno);
 		else {
 			for (int i=0; i<count; i++) {
-				printf("epoll %d of %d\n",i,count);
 				EpollTarget *t = (EpollTarget *)events[i].data.ptr;
 				t->handleData(events[i],my_tox);
 			}
 		}
 	}
 	puts("shutting down");
-	int size = tox_get_savedata_size(my_tox);
-	uint8_t *savedata = new uint8_t[size];
-	tox_get_savedata(my_tox,savedata);
-	int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
-	assert(fd);
-	int written = write(fd,savedata,size);
-	assert(written == size);
-	close(fd);
+	saveState(my_tox);
 	tox_kill(my_tox);
 	return 0;
 }

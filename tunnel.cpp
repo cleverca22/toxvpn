@@ -68,21 +68,15 @@ Tunnel::Tunnel(int friend_number,std::string myip, std::string peerip) {
 	epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event);
 }
 void Tunnel::handleData(struct epoll_event &eventin, Tox *tox) {
-	cout << eventin.events << endl;
 	uint8_t buffer[1501];
 	if (eventin.events & EPOLLIN) {
 		int size = read(this->handle,buffer+1,1500);
-		cout << "read" << size << endl;
 		buffer[0] = 200;
 		TOX_ERR_FRIEND_CUSTOM_PACKET error;
 		tox_friend_send_lossy_packet(tox,this->friend_number,buffer,size+1,&error);
-		cout << "error code " << error << endl;
+		if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) cout << "error code " << error << endl;
 	}
 }
 void Tunnel::processPacket(const uint8_t *data, size_t size) {
-	char hex[size*2+1];
-	memset(hex,0,size*2+1);
-	to_hex(hex,data,size);
-	std::cout << hex << std::endl;
 	write(this->handle,data,size);
 }
