@@ -1,0 +1,5 @@
+cmake_minimum_required (VERSION 2.6)
+project (vpn_test)
+include_directories("/usr/include/jsoncpp/")
+add_executable(vpn_test main.cpp tunnel.cpp control.cpp)
+target_link_libraries(vpn_test jsoncpp toxcore)
