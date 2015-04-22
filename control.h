@@ -7,5 +7,6 @@
 class Control : public EpollTarget {
 public:
 	Control();
-	virtual void handleData(epoll_event &eventin, Tox *tox);
+	virtual void handleReadData(Tox *tox);
+	int populate_fdset(fd_set *readset);
 };

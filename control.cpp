@@ -18,7 +18,7 @@ Control::Control() {
 	this->event.data.ptr = this;
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 }
-void Control::handleData(epoll_event &eventin, Tox *tox) {
+void Control::handleReadData(Tox *tox) {
 	char *line = 0;
 	size_t linelen = 0;
 	int size = getline(&line, &linelen, stdin);
@@ -124,4 +124,8 @@ void Control::handleData(epoll_event &eventin, Tox *tox) {
 		cout << "whitelist <toxid> - add/accept a friend" << endl;
 		cout << "status            - shows your own id&ip" << endl;
 	}
+}
+int Control::populate_fdset(fd_set *readset) {
+	FD_SET(this->handle,readset);
+	return this->handle;
 }

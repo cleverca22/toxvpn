@@ -65,6 +65,19 @@ void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t 
 	printf("Friend request: %s\nto accept, run 'whitelist %s'\n", message, tox_printable_id);
 	saveState(tox);
 }
+void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status, void *user_data) {
+	switch (connection_status) {
+	case TOX_CONNECTION_NONE:
+		printf("friend %d went offline\n",friend_number);
+		break;
+	case TOX_CONNECTION_TCP:
+		printf("friend %d connected via tcp\n",friend_number);
+		break;
+	case TOX_CONNECTION_UDP:
+		printf("friend %d connected via udp\n",friend_number);
+		break;
+	}
+}
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
 }
@@ -138,6 +151,7 @@ int main(int argc, char **argv) {
 		fstat(oldstate,&info);
 		uint8_t *temp = new uint8_t[info.st_size];
 		int size = read(oldstate,temp,info.st_size);
+		close(oldstate);
 		assert(size == info.st_size);
 		my_tox = tox_new(NULL,temp,size,NULL);
 		delete temp;
@@ -158,6 +172,7 @@ int main(int argc, char **argv) {
 	tox_callback_friend_request(my_tox, MyFriendRequestCallback, NULL);
 	tox_callback_friend_message(my_tox, MyFriendMessageCallback, NULL);
 	tox_callback_friend_status_message(my_tox, MyFriendStatusCallback, NULL);
+	tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate, NULL);
 	tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket, NULL);
 
 	/* Define or load some user details for the sake of it */
@@ -177,18 +192,51 @@ int main(int argc, char **argv) {
 	/* Bootstrap from the node defined above */
 	if (want_bootstrap) tox_bootstrap(my_tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
 
+#define USE_SELECT
+
+#ifdef USE_SELECT
+	fd_set readset;
+#endif
 	while (keep_running) {
+#ifdef USE_SELECT
+		FD_ZERO(&readset);
+		struct timeval timeout;
+		int maxfd = tox_populate_fdset(my_tox,&readset);
+		for (int i=0; i<100; i++) {
+			if (tunnels[i]) maxfd = std::max(maxfd,tunnels[i]->populate_fdset(&readset));
+		}
+		maxfd = std::max(maxfd,control.populate_fdset(&readset));
+#endif
+		int interval = tox_iteration_interval(my_tox);
+#ifdef USE_EPOLL
+		timeout.tv_sec = 0;
+		timeout.tv_usec = interval * 1000;
+		int r = select(maxfd+1, &readset, NULL, NULL, &timeout);
+		if (r > 0) {
+			for (int i=0; i<100; i++) {
+				if (tunnels[i]) {
+					if (FD_ISSET(tunnels[i]->handle,&readset)) {
+						tunnels[i]->handleReadData(my_tox);
+					}
+				}
+			}
+		}
+		if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
+#endif
+
 		tox_iterate(my_tox); // will call the callback functions defined and registered
 
+#ifdef USE_EPOLL
 		struct epoll_event events[10];
-		int count = epoll_wait(epoll_handle, events, 10, tox_iteration_interval(my_tox));
-		if (count == -1) std::cout << "epoll error " << strerror(errno);
+		int count = epoll_wait(epoll_handle, events, 10, interval);
+		if (count == -1) std::cout << "epoll error " << strerror(errno) << std::endl;
 		else {
 			for (int i=0; i<count; i++) {
 				EpollTarget *t = (EpollTarget *)events[i].data.ptr;
-				t->handleData(events[i],my_tox);
+				t->handleReadData(my_tox);
 			}
 		}
+#endif
 	}
 	puts("shutting down");
 	saveState(my_tox);

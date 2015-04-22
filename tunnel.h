@@ -17,8 +17,9 @@ class Tunnel : public EpollTarget {
 public:
 	Tunnel(int friend_number,std::string myip, std::string peerip);
 	~Tunnel();
-	virtual void handleData(struct epoll_event &eventin, Tox *tox);
+	virtual void handleReadData(Tox *tox);
 	void processPacket(const uint8_t *data, size_t size);
+	int populate_fdset(fd_set *readset);
 
 	int friend_number;
 };
