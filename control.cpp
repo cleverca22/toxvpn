@@ -13,10 +13,12 @@
 using namespace std;
 Control::Control() {
 	this->handle = STDIN_FILENO;
+#ifdef USE_EPOLL
 	memset(&this->event,0,sizeof(this->event));
 	this->event.events = EPOLLIN | EPOLLPRI | EPOLLERR;
 	this->event.data.ptr = this;
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
+#endif
 }
 void Control::handleReadData(Tox *tox) {
 	char *line = 0;

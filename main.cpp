@@ -125,10 +125,10 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
 int main(int argc, char **argv) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
 	hex_string_to_bin(BOOTSTRAP_KEY, bootstrap_pub_key);
-
+#ifdef USE_EPOLL
 	epoll_handle = epoll_create(20);
 	assert(epoll_handle >= 0);
-	
+#endif
 	Control control;
 
 	struct sigaction interupt;
@@ -194,7 +194,6 @@ int main(int argc, char **argv) {
 	/* Bootstrap from the node defined above */
 	if (want_bootstrap) tox_bootstrap(my_tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
 
-#define USE_EPOLL
 
 #ifdef USE_SELECT
 	fd_set readset;
@@ -203,7 +202,10 @@ int main(int argc, char **argv) {
 #ifdef USE_SELECT
 		FD_ZERO(&readset);
 		struct timeval timeout;
-		int maxfd = tox_populate_fdset(my_tox,&readset);
+        int maxfd = 0;
+#if 0
+		maxfd = tox_populate_fdset(my_tox,&readset);
+#endif
 		for (int i=0; i<100; i++) {
 			if (tunnels[i]) maxfd = std::max(maxfd,tunnels[i]->populate_fdset(&readset));
 		}
