@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
 		assert(size == info.st_size);
 		my_tox = tox_new(NULL,temp,size,NULL);
 		delete temp;
+		want_bootstrap = true;
 	} else {
 		/* Create a default Tox */
 		my_tox = tox_new(NULL, NULL, 0, NULL);
