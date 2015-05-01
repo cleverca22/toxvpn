@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 	/* Bootstrap from the node defined above */
 	if (want_bootstrap) tox_bootstrap(my_tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
 
-#define USE_SELECT
+#define USE_EPOLL
 
 #ifdef USE_SELECT
 	fd_set readset;
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
 		maxfd = std::max(maxfd,control.populate_fdset(&readset));
 #endif
 		int interval = tox_iteration_interval(my_tox);
-#ifdef USE_EPOLL
+#ifdef USE_SELECT
 		timeout.tv_sec = 0;
 		timeout.tv_usec = interval * 1000;
 		int r = select(maxfd+1, &readset, NULL, NULL, &timeout);
