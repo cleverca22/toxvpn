@@ -14,6 +14,7 @@
 #include "tunnel.h"
 #include "control.h"
 #include <errno.h>
+#include <iostream>
 #include "main.h"
 
 #define BOOTSTRAP_ADDRESS "23.226.230.47"
