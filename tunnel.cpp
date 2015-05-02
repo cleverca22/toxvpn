@@ -105,7 +105,15 @@ void Tunnel::handleReadData(Tox *tox) {
 	buffer[0] = 200;
 	TOX_ERR_FRIEND_CUSTOM_PACKET error;
 	tox_friend_send_lossy_packet(tox,this->friend_number,buffer,size+1,&error);
-	if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) cout << "error code " << error << endl;
+	switch (error) {
+	case TOX_ERR_FRIEND_CUSTOM_PACKET_OK:
+		break;
+	case TOX_ERR_FRIEND_CUSTOM_PACKET_FRIEND_NOT_CONNECTED:
+		cout << size << "byte packet dropped, friend#" << this->friend_number << "not online" << endl;
+		break;
+	default:
+		cout << "TX error code " << error << endl;
+	}
 }
 void Tunnel::processPacket(const uint8_t *data, size_t size) {
 	if (handle) {
