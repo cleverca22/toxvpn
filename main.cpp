@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
 		for (int i=0; i<100; i++) {
 			if (tunnels[i]) maxfd = std::max(maxfd,tunnels[i]->populate_fdset(&readset));
 		}
-#ifdef WIN32
+#ifndef WIN32
 		maxfd = std::max(maxfd,control.populate_fdset(&readset));
 #endif
 #endif
