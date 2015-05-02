@@ -246,6 +246,7 @@ int main(int argc, char **argv) {
 				}
 			}
 			if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
+		} else if (r == 0) {
 		} else {
 			if (r != -2) {
 #ifdef WIN32

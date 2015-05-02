@@ -20,6 +20,7 @@
 #include <string.h>
 #include <tox/tox.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "tunnel.h"
 #include "main.h"
@@ -116,6 +117,11 @@ void Tunnel::handleReadData(Tox *tox) {
 	}
 }
 void Tunnel::processPacket(const uint8_t *data, size_t size) {
+	/*printf("packet %d ==",size);
+	for (int i=0; i<size; i++) {
+		printf(" %02x",data[i]);
+	}
+	printf("\n");*/
 	if (handle) {
 		write(this->handle,data,size);
 	}
