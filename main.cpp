@@ -9,7 +9,11 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <unistd.h>
+#ifndef WIN32
 #include <sys/utsname.h>
+#else
+#include <winsock2.h>
+#endif
 #include <json/json.h>
 #include "tunnel.h"
 #include "control.h"
@@ -131,17 +135,20 @@ int main(int argc, char **argv) {
 #endif
 	Control control;
 
+#ifndef WIN32
 	struct sigaction interupt;
 	memset(&interupt,0,sizeof(interupt));
 	interupt.sa_handler = &handle_int;
 	sigaction(SIGINT,&interupt,NULL);
+#endif
 
 	for (int i=0; i<100; i++) tunnels[i] = 0;
 
 	assert(argc >= 2);
 	myip = argv[1];
+	Json::Value jsonip(myip);
 	Json::Value root;
-	root["ownip"] = myip;
+	root["ownip"] = jsonip;
 	Json::FastWriter fw;
 	
 	Tox *my_tox;
@@ -178,9 +185,14 @@ int main(int argc, char **argv) {
 	tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket, NULL);
 
 	/* Define or load some user details for the sake of it */
+#ifndef WIN32
 	struct utsname hostinfo;
 	uname(&hostinfo);
 	tox_self_set_name(my_tox, (const uint8_t*)hostinfo.nodename, strlen(hostinfo.nodename), NULL); // Sets the username
+#else
+	const char *hostname = "windows";
+	tox_self_set_name(my_tox, (const uint8_t*)hostname,strlen(hostname),NULL);
+#endif
 	std::string json = fw.write(root);
 	if (json[json.length()-1] == '\n') json.erase(json.length()-1, 1);
 	tox_self_set_status_message(my_tox, (const uint8_t*)json.data(), json.length(), NULL); // Sets the status message
@@ -202,7 +214,7 @@ int main(int argc, char **argv) {
 #ifdef USE_SELECT
 		FD_ZERO(&readset);
 		struct timeval timeout;
-        int maxfd = 0;
+		int maxfd = 0;
 #if 0
 		maxfd = tox_populate_fdset(my_tox,&readset);
 #endif
@@ -219,7 +231,7 @@ int main(int argc, char **argv) {
 		if (r > 0) {
 			for (int i=0; i<100; i++) {
 				if (tunnels[i]) {
-					if (FD_ISSET(tunnels[i]->handle,&readset)) {
+					if (tunnels[i]->handle && FD_ISSET(tunnels[i]->handle,&readset)) {
 						tunnels[i]->handleReadData(my_tox);
 					}
 				}
