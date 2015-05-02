@@ -221,13 +221,22 @@ int main(int argc, char **argv) {
 		for (int i=0; i<100; i++) {
 			if (tunnels[i]) maxfd = std::max(maxfd,tunnels[i]->populate_fdset(&readset));
 		}
+#ifdef WIN32
 		maxfd = std::max(maxfd,control.populate_fdset(&readset));
+#endif
 #endif
 		int interval = tox_iteration_interval(my_tox);
 #ifdef USE_SELECT
 		timeout.tv_sec = 0;
 		timeout.tv_usec = interval * 1000;
-		int r = select(maxfd+1, &readset, NULL, NULL, &timeout);
+		int r;
+#ifdef WIN32
+		if (maxfd == 0) {
+			Sleep(interval);
+			r = -2;
+		} else
+#endif
+		r = select(maxfd+1, &readset, NULL, NULL, &timeout);
 		if (r > 0) {
 			for (int i=0; i<100; i++) {
 				if (tunnels[i]) {
@@ -237,6 +246,14 @@ int main(int argc, char **argv) {
 				}
 			}
 			if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
+		} else {
+			if (r != -2) {
+#ifdef WIN32
+				int error = WSAGetLastError();
+				printf("winsock error %d %d\n",error,r);
+#endif
+				printf("select error %d %s\n",errno,strerror(errno));
+			}
 		}
 #endif
 

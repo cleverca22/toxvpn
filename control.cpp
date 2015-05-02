@@ -5,6 +5,11 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/select.h>
+#endif
 
 #include "control.h"
 #include "main.h"
@@ -21,10 +26,15 @@ Control::Control() {
 #endif
 }
 void Control::handleReadData(Tox *tox) {
+#ifdef WIN32
+	std::string cmd;
+	getline(cin,cmd);
+#else
 	char *line = 0;
 	size_t linelen = 0;
 	int size = getline(&line, &linelen, stdin);
 	std::string cmd(line,size);
+#endif
 	std::string buf;
 	std::stringstream ss(cmd);
 	ss >> buf;

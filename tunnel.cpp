@@ -1,19 +1,22 @@
-#include <arpa/inet.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <arpa/inet.h>
+# include <net/if.h>
+# include <netinet/in.h>
+# include <sys/ioctl.h>
+# include <sys/socket.h>
+# ifndef __APPLE__
+#  include <linux/if_tun.h>
+# endif
+#endif
+
 #include <errno.h>
 #include <fcntl.h>
 #include <iostream>
-
-#ifndef __APPLE__
-#include <linux/if_tun.h>
-#endif
-
-#include <net/if.h>
-#include <netinet/in.h>
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <string.h>
 #include <tox/tox.h>
 #include <unistd.h>
@@ -24,6 +27,10 @@
 using namespace std;
 
 Tunnel::Tunnel(int friend_number,std::string myip, std::string peerip) {
+#ifdef WIN32
+	cout << "new tunnel" << friend_number << myip << peerip << endl;
+	this->handle = 0;
+#else
 	struct ifreq ifr;
 	int fd,err;
 	this->friend_number = friend_number;
@@ -78,9 +85,12 @@ Tunnel::Tunnel(int friend_number,std::string myip, std::string peerip) {
 	this->event.data.ptr = this;
 	epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event);
 #endif
+#endif
 }
 int Tunnel::populate_fdset(fd_set *readset) {
-	FD_SET(this->handle,readset);
+	if (handle) {
+		FD_SET(this->handle,readset);
+	}
 	return this->handle;
 }
 Tunnel::~Tunnel() {
@@ -98,5 +108,7 @@ void Tunnel::handleReadData(Tox *tox) {
 	if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) cout << "error code " << error << endl;
 }
 void Tunnel::processPacket(const uint8_t *data, size_t size) {
-	write(this->handle,data,size);
+	if (handle) {
+		write(this->handle,data,size);
+	}
 }
