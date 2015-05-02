@@ -224,8 +224,8 @@ int main(int argc, char **argv) {
 					}
 				}
 			}
+			if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
 		}
-		if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
 #endif
 
 		tox_iterate(my_tox); // will call the callback functions defined and registered
