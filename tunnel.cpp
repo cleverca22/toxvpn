@@ -119,7 +119,7 @@ void Tunnel::handleReadData(Tox *tox) {
 #ifdef __APPLE__
 	buffer[1] = 0;
 	buffer[2] = 0;
-	buffer[3] = 0x80;
+	buffer[3] = 0x08;
 	buffer[4] = 0;
 #endif
 	TOX_ERR_FRIEND_CUSTOM_PACKET error;
