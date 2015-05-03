@@ -135,6 +135,9 @@ void Tunnel::handleReadData(Tox *tox) {
 	case TOX_ERR_FRIEND_CUSTOM_PACKET_FRIEND_NOT_CONNECTED:
 		cout << size << "byte packet dropped, friend#" << this->friend_number << "not online" << endl;
 		break;
+	case TOX_ERR_FRIEND_CUSTOM_PACKET_SENDQ:
+		cout << size << "byte packet dropped, sendq for friend#" << this->friend_number << "full" << endl;
+		break;
 	default:
 		cout << "TX error code " << error << endl;
 	}
