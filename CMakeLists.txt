@@ -16,4 +16,4 @@ if(WIN32)
 target_link_libraries(toxvpn ws2_32 sodium pthread iphlpapi)
 endif(WIN32)
 
-install(TARGETS toxvpn DESTINATION .)
+install(TARGETS toxvpn DESTINATION bin)
