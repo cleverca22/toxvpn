@@ -18,6 +18,8 @@
 using namespace std;
 Control::Control(Interface *interface): interface(interface) {
 	this->handle = STDIN_FILENO;
+	input = stdin;
+	output = stdout;
 #ifdef USE_EPOLL
 	memset(&this->event,0,sizeof(this->event));
 	this->event.events = EPOLLIN | EPOLLPRI | EPOLLERR;
@@ -25,14 +27,21 @@ Control::Control(Interface *interface): interface(interface) {
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 #endif
 }
-void Control::handleReadData(Tox *tox) {
+Control::Control(Interface *interface, int socket): interface(interface) {
+	this->handle = socket;
+	input = fdopen(handle,"r");
+	output = fdopen(handle,"w");
+}
+int Control::handleReadData(Tox *tox) {
 #ifdef WIN32
 	std::string cmd;
 	getline(cin,cmd);
 #else
 	char *line = 0;
 	size_t linelen = 0;
-	int size = getline(&line, &linelen, stdin);
+	int size;
+	size = getline(&line, &linelen, input);
+	if (size == -1) return -1;
 	std::string cmd(line,size);
 #endif
 	std::string buf;
@@ -40,7 +49,7 @@ void Control::handleReadData(Tox *tox) {
 	ss >> buf;
 	TOX_ERR_FRIEND_QUERY fqerror;
 	if (buf == "list") {
-		cout << "listing friends" << endl;
+		fputs("listing friends\n",output);
 		int friendCount = tox_self_get_friend_list_size(tox);
 		uint32_t *friends = new uint32_t[friendCount];
 		tox_self_get_friend_list(tox,friends);
@@ -69,7 +78,7 @@ void Control::handleReadData(Tox *tox) {
 			tox_friend_get_status_message(tox,friendid,status,NULL);
 			status[statusSize] = 0;
 			uint32_t hack = lastonline;
-			printf("friend#%2d name:%15s status:%10s %30s lastonline:%d\n",friendid,friendname,statusString.c_str(),status,hack);
+			fprintf(output,"friend#%2d name:%15s status:%10s %30s lastonline:%d\n",friendid,friendname,statusString.c_str(),status,hack);
 			delete friendname;
 			delete status;
 		}
@@ -77,12 +86,12 @@ void Control::handleReadData(Tox *tox) {
 	} else if (buf == "remove") {
 		int friendid;
 		ss >> friendid;
-		printf("going to kick %d\n",friendid);
+		fprintf(output,"going to kick %d\n",friendid);
 		tox_friend_delete(tox,friendid,NULL);
 		interface->removePeer(friendid);
 	} else if (buf == "add") {
 		ss >> buf;
-		printf("going to connect to %s\n",buf.c_str());
+		fprintf(output,"going to connect to %s\n",buf.c_str());
 		const char *msg = "toxvpn";
 		uint8_t peerbinary[TOX_ADDRESS_SIZE];
 		TOX_ERR_FRIEND_ADD error;
@@ -92,13 +101,13 @@ void Control::handleReadData(Tox *tox) {
 		case TOX_ERR_FRIEND_ADD_OK:
 			break;
 		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
-			puts("already sent");
+			fputs("already sent\n",output);
 			break;
 		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
 			puts("crc error");
 			break;
 		default:
-			printf("err code %d\n",error);
+			fprintf(output,"err code %d\n",error);
 		}
 	} else if (buf == "whitelist") {
 		ss >> buf;
@@ -110,13 +119,13 @@ void Control::handleReadData(Tox *tox) {
 		case TOX_ERR_FRIEND_ADD_OK:
 			break;
 		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
-			puts("already sent");
+			fputs("already sent\n",output);
 			break;
 		case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
-			puts("crc error");
+			fputs("crc error\n",output);
 			break;
 		default:
-			printf("err code %d\n",error);
+			fprintf(output,"err code %d\n",error);
 		}
 		saveState(tox);
 	} else if (buf == "status") {
@@ -125,23 +134,25 @@ void Control::handleReadData(Tox *tox) {
 		char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
 		memset(tox_printable_id, 0, sizeof(tox_printable_id));
 		to_hex(tox_printable_id, toxid,TOX_ADDRESS_SIZE);
-		printf("my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
+		fprintf(output,"my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
 	} else if (buf == "help") {
-		cout << "list              - lists tox friends" << endl;
-		cout << "remove <number>   - removes a friend, get the number from list" << endl;
-		cout << "add <toxid>       - adds a friend" << endl;
-		cout << "whitelist <toxid> - add/accept a friend" << endl;
-		cout << "status            - shows your own id&ip" << endl;
+		fputs("list              - lists tox friends\n",output);
+		fputs("remove <number>   - removes a friend, get the number from list\n",output);
+		fputs("add <toxid>       - adds a friend\n",output);
+		fputs("whitelist <toxid> - add/accept a friend\n",output);
+		fputs("status            - shows your own id&ip\n",output);
 	} else if (buf == "route") {
 		ss >> buf;
 		if (buf == "show") {
 			std::list<Route>::const_iterator i;
 			for (i=interface->routes.begin(); i!=interface->routes.end(); ++i) {
 				Route r = *i;
-				printf("%s/%d via friend#%d\n",inet_ntoa(r.network),r.maskbits,r.friend_number);
+				fprintf(output,"%s/%d via friend#%d\n",inet_ntoa(r.network),r.maskbits,r.friend_number);
 			}
 		}
 	}
+	fflush(output);
+	return size;
 }
 int Control::populate_fdset(fd_set *readset) {
 	FD_SET(this->handle,readset);

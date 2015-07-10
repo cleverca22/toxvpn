@@ -21,6 +21,7 @@
 #include "main.h"
 #include "interface.h"
 #include "route.h"
+#include "listener.h"
 
 #define BOOTSTRAP_ADDRESS "23.226.230.47"
 #define BOOTSTRAP_PORT 33445
@@ -167,18 +168,40 @@ int main(int argc, char **argv) {
 #endif
 
 	Json::Value configRoot;
+
+	int opt;
+	bool stdin_is_socket = false;
+	string changeIp;
+	while ((opt = getopt(argc,argv,"si:")) != -1) {
+		switch (opt) {
+		case 's':
+			stdin_is_socket = true;
+			break;
+		case 'i':
+			changeIp = optarg;
+			break;
+		}
+	}
 	
 	std::string config = readFile("config.json");
 	Json::Reader reader;
 	if (reader.parse(config, configRoot)) {
+		if (changeIp.length() > 0) {
+			configRoot["myip"] = changeIp;
+			saveConfig(configRoot);
+		}
 		Json::Value ip = configRoot["myip"];
 		if (ip.isString()) {
 			myip = ip.asString();
 		}
 	} else {
-		cout << "what is the VPN ip of this computer?" << endl;
-		cin >> myip;
-		configRoot["myip"] = Json::Value(myip);
+		if (changeIp.length() > 0) {
+			configRoot["myip"] = changeIp;
+		} else {
+			cout << "what is the VPN ip of this computer?" << endl;
+			cin >> myip;
+			configRoot["myip"] = Json::Value(myip);
+		}
 		saveConfig(configRoot);
 	}
 
@@ -248,7 +271,13 @@ int main(int argc, char **argv) {
 	fd_set readset;
 #endif
 	mynic = new Interface(myip,my_tox);
-	Control control(mynic);
+	Control *control = 0;
+	SocketListener *listener = 0;
+	if (stdin_is_socket) {
+		listener = new SocketListener(mynic);
+	} else {
+		control = new Control(mynic);
+	}
 	while (keep_running) {
 #ifdef USE_SELECT
 		FD_ZERO(&readset);
@@ -258,7 +287,8 @@ int main(int argc, char **argv) {
 		maxfd = tox_populate_fdset(my_tox,&readset);
 #endif
 #ifndef WIN32
-		maxfd = std::max(maxfd,control.populate_fdset(&readset));
+		if (control) maxfd = std::max(maxfd,control->populate_fdset(&readset));
+		if (listener) maxfd = std::max(maxfd,listener->populate_fdset(&readset));
 #endif
 #endif
 		int interval = tox_iteration_interval(my_tox);
@@ -274,7 +304,9 @@ int main(int argc, char **argv) {
 #endif
 		r = select(maxfd+1, &readset, NULL, NULL, &timeout);
 		if (r > 0) {
-			if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
+			if (control && FD_ISSET(control->handle,&readset)) control->handleReadData(my_tox);
+			if (listener && FD_ISSET(listener->socket,&readset)) listener->doAccept();
+			if (listener) listener->checkFds(&readset,my_tox);
 		} else if (r == 0) {
 		} else {
 			if (r != -2) {

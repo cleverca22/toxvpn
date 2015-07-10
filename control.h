@@ -1,16 +1,19 @@
 #pragma once
 
 #include <tox/tox.h>
-
-#include "epoll_target.h"
+#include <stdio.h>
 
 class Interface;
 
-class Control : public EpollTarget {
+class Control {
 public:
 	Control(Interface *interface);
-	virtual void handleReadData(Tox *tox);
+	Control(Interface *iterface, int socket);
+	int handleReadData(Tox *tox);
 	int populate_fdset(fd_set *readset);
+	
+	int handle;
 private:
 	Interface *interface;
+	FILE *input, *output;
 };
