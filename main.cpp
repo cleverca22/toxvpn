@@ -15,17 +15,20 @@
 #include <winsock2.h>
 #endif
 #include <json/json.h>
-#include "tunnel.h"
 #include "control.h"
 #include <errno.h>
 #include <iostream>
 #include "main.h"
+#include "interface.h"
+#include "route.h"
 
 #define BOOTSTRAP_ADDRESS "23.226.230.47"
 #define BOOTSTRAP_PORT 33445
 #define BOOTSTRAP_KEY "A09162D68618E742FFBCA1C2C70385E6679604B2D80EA6E84AD0996A1AC8A074"
 
-Tunnel *tunnels[100];
+using namespace std;
+
+Interface *mynic;
 volatile bool keep_running = true;
 std::string myip;
 int epoll_handle;
@@ -74,6 +77,7 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
 	switch (connection_status) {
 	case TOX_CONNECTION_NONE:
 		printf("friend %d went offline\n",friend_number);
+		mynic->removePeer(friend_number);
 		break;
 	case TOX_CONNECTION_TCP:
 		printf("friend %d connected via tcp\n",friend_number);
@@ -94,9 +98,9 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 		Json::Value ip = root["ownip"];
 		if (ip.isString()) {
 			std::string peerip = ip.asString();
-			if (!tunnels[friend_number]) {
-				tunnels[friend_number] = new Tunnel(friend_number,myip,peerip);
-			}
+			struct in_addr peerBinary;
+			inet_aton(peerip.c_str(), &peerBinary);
+			mynic->setPeerIp(peerBinary,friend_number);
 		}
 	} else {
 		printf("unable to parse status, ignoring\n");
@@ -105,7 +109,7 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 }
 void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data) {
 	if (data[0] == 200) {
-		if (tunnels[friend_number]) tunnels[friend_number]->processPacket(data+1,length-1);
+		mynic->processPacket(data+1,length-1,friend_number);
 	}
 }
 void handle_int(int something) {
@@ -126,6 +130,26 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
 	}
 	saveState(tox);
 }
+std::string readFile(std::string path) {
+	std::string output;
+	FILE *handle = fopen(path.c_str(),"r");
+	if (!handle) return "";
+	char buffer[100];
+	while (size_t bytes = fread(buffer,1,99,handle)) {
+		std::string part(buffer,bytes);
+		output += part;
+	}
+	fclose(handle);
+	return output;
+}
+void saveConfig(Json::Value root) {
+	Json::FastWriter fw;
+	std::string json = fw.write(root);
+	FILE *handle = fopen("config.json","w");
+	const char *data = json.c_str();
+	fwrite(data,json.length(),1,handle);
+	fclose(handle);
+}
 int main(int argc, char **argv) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
 	hex_string_to_bin(BOOTSTRAP_KEY, bootstrap_pub_key);
@@ -133,7 +157,7 @@ int main(int argc, char **argv) {
 	epoll_handle = epoll_create(20);
 	assert(epoll_handle >= 0);
 #endif
-	Control control;
+	route_init();
 
 #ifndef WIN32
 	struct sigaction interupt;
@@ -142,17 +166,29 @@ int main(int argc, char **argv) {
 	sigaction(SIGINT,&interupt,NULL);
 #endif
 
-	for (int i=0; i<100; i++) tunnels[i] = 0;
-
-	assert(argc >= 2);
-	myip = argv[1];
-	Json::Value jsonip(myip);
-	Json::Value root;
-	root["ownip"] = jsonip;
-	Json::FastWriter fw;
+	Json::Value configRoot;
 	
+	std::string config = readFile("config.json");
+	Json::Reader reader;
+	if (reader.parse(config, configRoot)) {
+		Json::Value ip = configRoot["myip"];
+		if (ip.isString()) {
+			myip = ip.asString();
+		}
+	} else {
+		cout << "what is the VPN ip of this computer?" << endl;
+		cin >> myip;
+		configRoot["myip"] = Json::Value(myip);
+		saveConfig(configRoot);
+	}
+
+	Json::Value root;
+	root["ownip"] = configRoot["myip"];
+	Json::FastWriter fw;
+
 	Tox *my_tox;
 	bool want_bootstrap = false;
+	struct Tox_Options *opts = tox_options_new(NULL);
 	int oldstate = open("savedata",O_RDONLY);
 	if (oldstate >= 0) {
 		struct stat info;
@@ -161,14 +197,15 @@ int main(int argc, char **argv) {
 		int size = read(oldstate,temp,info.st_size);
 		close(oldstate);
 		assert(size == info.st_size);
-		my_tox = tox_new(NULL,temp,size,NULL);
-		delete temp;
-		want_bootstrap = true;
-	} else {
-		/* Create a default Tox */
-		my_tox = tox_new(NULL, NULL, 0, NULL);
-		want_bootstrap = true;
+		opts->savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
+		opts->savedata_data = temp;
+		opts->savedata_length = size;
 	}
+
+	want_bootstrap = true;
+	my_tox = tox_new(opts,NULL);
+	if (opts->savedata_data) delete opts->savedata_data;
+	tox_options_free(opts); opts = 0;
 
 	uint8_t toxid[TOX_ADDRESS_SIZE];
 	tox_self_get_address(my_tox,toxid);
@@ -210,6 +247,8 @@ int main(int argc, char **argv) {
 #ifdef USE_SELECT
 	fd_set readset;
 #endif
+	mynic = new Interface(myip,my_tox);
+	Control control(mynic);
 	while (keep_running) {
 #ifdef USE_SELECT
 		FD_ZERO(&readset);
@@ -218,9 +257,6 @@ int main(int argc, char **argv) {
 #if 0
 		maxfd = tox_populate_fdset(my_tox,&readset);
 #endif
-		for (int i=0; i<100; i++) {
-			if (tunnels[i]) maxfd = std::max(maxfd,tunnels[i]->populate_fdset(&readset));
-		}
 #ifndef WIN32
 		maxfd = std::max(maxfd,control.populate_fdset(&readset));
 #endif
@@ -238,13 +274,6 @@ int main(int argc, char **argv) {
 #endif
 		r = select(maxfd+1, &readset, NULL, NULL, &timeout);
 		if (r > 0) {
-			for (int i=0; i<100; i++) {
-				if (tunnels[i]) {
-					if (tunnels[i]->handle && FD_ISSET(tunnels[i]->handle,&readset)) {
-						tunnels[i]->handleReadData(my_tox);
-					}
-				}
-			}
 			if (FD_ISSET(control.handle,&readset)) control.handleReadData(my_tox);
 		} else if (r == 0) {
 		} else {
@@ -253,7 +282,7 @@ int main(int argc, char **argv) {
 				int error = WSAGetLastError();
 				printf("winsock error %d %d\n",error,r);
 #endif
-				printf("select error %d %s\n",errno,strerror(errno));
+				printf("select error %d %d %s\n",r,errno,strerror(errno));
 			}
 		}
 #endif

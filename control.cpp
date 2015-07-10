@@ -13,10 +13,10 @@
 
 #include "control.h"
 #include "main.h"
-#include "tunnel.h"
+#include "interface.h"
 
 using namespace std;
-Control::Control() {
+Control::Control(Interface *interface): interface(interface) {
 	this->handle = STDIN_FILENO;
 #ifdef USE_EPOLL
 	memset(&this->event,0,sizeof(this->event));
@@ -79,10 +79,7 @@ void Control::handleReadData(Tox *tox) {
 		ss >> friendid;
 		printf("going to kick %d\n",friendid);
 		tox_friend_delete(tox,friendid,NULL);
-		if (tunnels[friendid]) {
-			delete tunnels[friendid];
-			tunnels[friendid] = NULL;
-		}
+		interface->removePeer(friendid);
 	} else if (buf == "add") {
 		ss >> buf;
 		printf("going to connect to %s\n",buf.c_str());
@@ -135,6 +132,15 @@ void Control::handleReadData(Tox *tox) {
 		cout << "add <toxid>       - adds a friend" << endl;
 		cout << "whitelist <toxid> - add/accept a friend" << endl;
 		cout << "status            - shows your own id&ip" << endl;
+	} else if (buf == "route") {
+		ss >> buf;
+		if (buf == "show") {
+			std::list<Route>::const_iterator i;
+			for (i=interface->routes.begin(); i!=interface->routes.end(); ++i) {
+				Route r = *i;
+				printf("%s/%d via friend#%d\n",inet_ntoa(r.network),r.maskbits,r.friend_number);
+			}
+		}
 	}
 }
 int Control::populate_fdset(fd_set *readset) {

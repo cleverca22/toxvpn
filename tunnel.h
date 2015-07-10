@@ -13,13 +13,12 @@
 
 #include "epoll_target.h"
 
-class Tunnel : public EpollTarget {
+class Interface;
+
+class Tunnel {
 public:
-	Tunnel(int friend_number,std::string myip, std::string peerip);
+	Tunnel(int friend_number,std::string myip, std::string peerip, Interface *interface);
 	~Tunnel();
-	virtual void handleReadData(Tox *tox);
-	void processPacket(const uint8_t *data, size_t size);
-	int populate_fdset(fd_set *readset);
 
 	int friend_number;
 };

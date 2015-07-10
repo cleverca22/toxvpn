@@ -4,9 +4,13 @@
 
 #include "epoll_target.h"
 
+class Interface;
+
 class Control : public EpollTarget {
 public:
-	Control();
+	Control(Interface *interface);
 	virtual void handleReadData(Tox *tox);
 	int populate_fdset(fd_set *readset);
+private:
+	Interface *interface;
 };

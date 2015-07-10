@@ -15,11 +15,9 @@
 
 #define USE_SELECT
 
-class Tunnel;
 
 void to_hex(char *a, const uint8_t *p, int size);
 void hex_string_to_bin(const char *hex_string, uint8_t *ret);
 void saveState(Tox *tox);
 
-extern Tunnel *tunnels[100];
 extern std::string myip;
