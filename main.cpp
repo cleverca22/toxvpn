@@ -151,9 +151,12 @@ void saveConfig(Json::Value root) {
 	fwrite(data,json.length(),1,handle);
 	fclose(handle);
 }
-int main(int argc, char **argv) {
+void do_bootstrap(Tox *tox) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
 	hex_string_to_bin(BOOTSTRAP_KEY, bootstrap_pub_key);
+	tox_bootstrap(tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
+}
+int main(int argc, char **argv) {
 #ifdef USE_EPOLL
 	epoll_handle = epoll_create(20);
 	assert(epoll_handle >= 0);
@@ -264,7 +267,7 @@ int main(int argc, char **argv) {
 	tox_callback_self_connection_status(my_tox, &connection_status, 0);
 
 	/* Bootstrap from the node defined above */
-	if (want_bootstrap) tox_bootstrap(my_tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
+	if (want_bootstrap) do_bootstrap(my_tox);
 
 
 #ifdef USE_SELECT

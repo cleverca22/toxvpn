@@ -141,6 +141,9 @@ int Control::handleReadData(Tox *tox) {
 		fputs("add <toxid>       - adds a friend\n",output);
 		fputs("whitelist <toxid> - add/accept a friend\n",output);
 		fputs("status            - shows your own id&ip\n",output);
+		fputs("bootstrap         - attempt to reconnect\n",output);
+	} else if (buf == "bootstrap") {
+		do_bootstrap(tox);
 	} else if (buf == "route") {
 		ss >> buf;
 		if (buf == "show") {

@@ -19,5 +19,6 @@
 void to_hex(char *a, const uint8_t *p, int size);
 void hex_string_to_bin(const char *hex_string, uint8_t *ret);
 void saveState(Tox *tox);
+void do_bootstrap(Tox *tox);
 
 extern std::string myip;
