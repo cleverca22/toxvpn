@@ -2,8 +2,7 @@
 
 #include <tox/tox.h>
 #include <stdio.h>
-
-class Interface;
+#include "interface.h"
 
 class Control {
 public:
