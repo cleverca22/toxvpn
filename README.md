@@ -19,7 +19,7 @@ To run **toxvpn** after you compile / install it, you will need to load ``tun`` 
 
 After that, you can run **toxvpn**:
 ```
-# ./toxvpn 192.168.127.1
+# ./toxvpn -i 192.168.127.1
 ```
 
 After that type ``help`` to get list of commands.
