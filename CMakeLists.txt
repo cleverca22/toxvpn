@@ -1,7 +1,10 @@
 cmake_minimum_required (VERSION 2.6)
 project (vpn_test)
 
+if(WIN32)
+else(WIN32)
 set(SYSROOT "/usr")
+endif(WIN32)
 
 include_directories("${SYSROOT}/include/jsoncpp/" "${SYSROOT}/include/")
 
