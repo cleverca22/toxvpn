@@ -1,12 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (vpn_test)
 
-if(WIN32)
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -L/home/poker/tox/lib/ -static-libstdc++")
-else(WIN32)
-set(SYSROOT "/usr")
-endif(WIN32)
-
 include_directories("${SYSROOT}/include/jsoncpp/" "${SYSROOT}/include/")
 
 if(WIN32)
