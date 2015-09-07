@@ -30,7 +30,7 @@
 using namespace std;
 using namespace ToxVPN;
 
-Interface *mynic;
+NetworkInterface *mynic;
 volatile bool keep_running = true;
 std::string myip;
 int epoll_handle;
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 #ifdef USE_SELECT
 	fd_set readset;
 #endif
-	mynic = new Interface(myip,my_tox);
+	mynic = new NetworkInterface(myip,my_tox);
 	Control *control = 0;
 	SocketListener *listener = 0;
 	if (stdin_is_socket) {

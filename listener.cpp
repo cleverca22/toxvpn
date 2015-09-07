@@ -6,7 +6,7 @@
 
 using namespace ToxVPN;
 
-SocketListener::SocketListener(Interface *interface): interface(interface) {
+SocketListener::SocketListener(NetworkInterface *interface): interface(interface) {
 	socket = dup(0);
 }
 int SocketListener::populate_fdset(fd_set *readset) {

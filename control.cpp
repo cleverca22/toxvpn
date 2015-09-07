@@ -18,7 +18,7 @@
 using namespace std;
 using namespace ToxVPN;
 
-Control::Control(Interface *interface): interface(interface) {
+Control::Control(NetworkInterface *interface): interface(interface) {
 	this->handle = STDIN_FILENO;
 	input = stdin;
 	output = stdout;
@@ -29,7 +29,7 @@ Control::Control(Interface *interface): interface(interface) {
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 #endif
 }
-Control::Control(Interface *interface, int socket): interface(interface) {
+Control::Control(NetworkInterface *interface, int socket): interface(interface) {
 	this->handle = socket;
 	input = fdopen(handle,"r");
 	output = fdopen(handle,"w");

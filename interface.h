@@ -31,10 +31,10 @@ public:
 	int maskbits;
 	int friend_number;
 };
-class Interface {
+class NetworkInterface {
 public:
-	Interface(std::string myip, Tox *my_tox);
-	~Interface();
+	NetworkInterface(std::string myip, Tox *my_tox);
+	~NetworkInterface();
 	void *loop();
 	void setPeerIp(struct in_addr peer, int friend_number);
 	void removePeer(int friend_number);

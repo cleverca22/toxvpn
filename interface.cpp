@@ -16,10 +16,10 @@ using namespace std;
 using namespace ToxVPN;
 
 static void *start_routine(void *x) {
-	Interface *nic = (Interface*)x;
+	NetworkInterface *nic = (NetworkInterface*)x;
 	nic->loop();
 }
-Interface::Interface(string myip, Tox *my_tox): my_tox(my_tox) {
+NetworkInterface::NetworkInterface(string myip, Tox *my_tox): my_tox(my_tox) {
 	fd = 0;
 	int err;
 	struct ifreq ifr;
@@ -79,7 +79,7 @@ Interface::Interface(string myip, Tox *my_tox): my_tox(my_tox) {
 	pthread_create(&reader,&attr,&start_routine,this);
 	pthread_attr_destroy(&attr);
 }
-void *Interface::loop() {
+void *NetworkInterface::loop() {
 	fd_set readset;
 	struct timeval timeout;
 	int r;
@@ -107,7 +107,7 @@ void dump_packet(uint8_t *buffer, int size) {
 	}
 	printf("\n");
 }
-void Interface::handleReadData() {
+void NetworkInterface::handleReadData() {
 	uint8_t readbuffer[1500];
 	int size = read(fd,readbuffer,1500);
 	for (int i=0; i<sizeof(required); i++) {
@@ -131,7 +131,7 @@ void Interface::handleReadData() {
 		printf("no route found for %s\n",inet_ntoa(*dest));
 	}
 }
-void Interface::forwardPacket(Route route, uint8_t *readbuffer, int size) {
+void NetworkInterface::forwardPacket(Route route, uint8_t *readbuffer, int size) {
 	uint8_t buffer[1500+OFFSET];
 	buffer[0] = 200;
 #ifdef __APPLE__
@@ -156,7 +156,7 @@ void Interface::forwardPacket(Route route, uint8_t *readbuffer, int size) {
 		cout << "TX error code " << error << endl;
 	}
 }
-void Interface::addPeerRoute(struct in_addr peer, int friend_number) {
+void NetworkInterface::addPeerRoute(struct in_addr peer, int friend_number) {
 	Route x;
 	x.network = peer;
 	inet_aton("255.255.255.255",&x.mask);
@@ -165,14 +165,14 @@ void Interface::addPeerRoute(struct in_addr peer, int friend_number) {
 	routes.push_back(x);
 	systemRouteSingle(interfaceIndex,peer,"10.123.123.123");
 }
-void Interface::setPeerIp(struct in_addr peer, int friend_number) {
+void NetworkInterface::setPeerIp(struct in_addr peer, int friend_number) {
 	// TODO, flag as online, remove previous ip route
 	addPeerRoute(peer,friend_number);
 }
-void Interface::removePeer(int friend_number) {
+void NetworkInterface::removePeer(int friend_number) {
 	// TODO, remove routes in-app and in-kernel
 }
-bool Interface::findRoute(Route *route,struct in_addr peer) {
+bool NetworkInterface::findRoute(Route *route,struct in_addr peer) {
 	std::list<Route>::const_iterator i;
 	for (i=routes.begin(); i!=routes.end(); ++i) {
 		Route r = *i;
@@ -189,7 +189,7 @@ bool Interface::findRoute(Route *route,struct in_addr peer) {
 	}
 	return false;
 }
-void Interface::processPacket(const uint8_t *data, size_t size, int friend_number) {
+void NetworkInterface::processPacket(const uint8_t *data, size_t size, int friend_number) {
 	/*printf("packet %d ==",size);
 	for (int i=0; i<size; i++) {
 		printf(" %02x",data[i]);
