@@ -12,7 +12,8 @@
 #ifndef WIN32
 #include <sys/utsname.h>
 #else
-#include <winsock2.h>
+# include <winsock2.h>
+# include <Mstcpip.h>
 #endif
 #include <json/json.h>
 #include "interface.h"
@@ -94,7 +95,7 @@ void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE 
 }
 #ifdef WIN32
 void inet_aton(const char *address, struct in_addr *output) {
-	RtlIpv6StringToAddress(address,false,0,output);
+	RtlIpv4StringToAddress(address,false,0,output);
 }
 #endif
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
