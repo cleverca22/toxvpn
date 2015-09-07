@@ -13,7 +13,6 @@
 #include <sys/utsname.h>
 #else
 # include <winsock2.h>
-# include <Mstcpip.h>
 #endif
 #include <json/json.h>
 #include "interface.h"
@@ -93,11 +92,6 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
 }
-#ifdef WIN32
-void inet_aton(const char *address, struct in_addr *output) {
-	RtlIpv4StringToAddress(address,false,0,output);
-}
-#endif
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
 	printf("status msg #%d %s\n",friend_number,message);
 	Json::Reader reader;
@@ -107,7 +101,7 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 		if (ip.isString()) {
 			std::string peerip = ip.asString();
 			struct in_addr peerBinary;
-			inet_aton(peerip.c_str(), &peerBinary);
+			inet_pton(AF_INET, peerip.c_str(), &peerBinary);
 			mynic->setPeerIp(peerBinary,friend_number);
 		}
 	} else {
