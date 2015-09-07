@@ -12,7 +12,7 @@
 #ifndef WIN32
 #include <sys/utsname.h>
 #else
-# include <winsock2.h>
+# include <ws2tcpip.h>
 #endif
 #include <json/json.h>
 #include "interface.h"
