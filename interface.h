@@ -22,6 +22,8 @@
 #include <list>
 #include <pthread.h>
 
+namespace ToxVPN {
+
 class Route {
 public:
 	struct in_addr network;
@@ -50,3 +52,5 @@ private:
 	Tox *my_tox;
 	int interfaceIndex;
 };
+
+}

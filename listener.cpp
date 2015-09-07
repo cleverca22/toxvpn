@@ -4,6 +4,8 @@
 
 #include "listener.h"
 
+using namespace ToxVPN;
+
 SocketListener::SocketListener(Interface *interface): interface(interface) {
 	socket = dup(0);
 }

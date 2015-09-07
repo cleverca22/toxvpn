@@ -28,6 +28,7 @@
 #define BOOTSTRAP_KEY "A09162D68618E742FFBCA1C2C70385E6679604B2D80EA6E84AD0996A1AC8A074"
 
 using namespace std;
+using namespace ToxVPN;
 
 Interface *mynic;
 volatile bool keep_running = true;

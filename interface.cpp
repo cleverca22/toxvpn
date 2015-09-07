@@ -13,6 +13,7 @@
 #include "route.h"
 
 using namespace std;
+using namespace ToxVPN;
 
 static void *start_routine(void *x) {
 	Interface *nic = (Interface*)x;

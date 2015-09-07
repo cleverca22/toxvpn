@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "interface.h"
 
+namespace ToxVPN {
+
 class Control {
 public:
 	Control(Interface *interface);
@@ -15,4 +17,6 @@ public:
 private:
 	Interface *interface;
 	FILE *input, *output;
+};
+
 };

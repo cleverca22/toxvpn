@@ -16,6 +16,8 @@
 #include "interface.h"
 
 using namespace std;
+using namespace ToxVPN;
+
 Control::Control(Interface *interface): interface(interface) {
 	this->handle = STDIN_FILENO;
 	input = stdin;

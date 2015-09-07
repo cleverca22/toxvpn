@@ -4,6 +4,8 @@
 
 #include "control.h"
 
+namespace ToxVPN {
+
 class SocketListener {
 public:
 	SocketListener(Interface *interface);
@@ -15,4 +17,6 @@ public:
 private:
 	std::list<Control*> connections;
 	Interface *interface;
+};
+
 };
