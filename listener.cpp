@@ -6,7 +6,7 @@
 
 using namespace ToxVPN;
 
-SocketListener::SocketListener(NetworkInterface *interface): interface(interface) {
+SocketListener::SocketListener(NetworkInterface *interfarce): interfarce(interfarce) {
 	socket = dup(0);
 }
 int SocketListener::populate_fdset(fd_set *readset) {
@@ -21,7 +21,7 @@ int SocketListener::populate_fdset(fd_set *readset) {
 }
 void SocketListener::doAccept() {
 	int newsocket = accept(socket,0,0);
-	Control *c = new Control(interface,newsocket);
+	Control *c = new Control(interfarce,newsocket);
 	connections.push_back(c);
 }
 void SocketListener::checkFds(fd_set *readset, Tox *my_tox) {
