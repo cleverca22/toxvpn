@@ -35,13 +35,14 @@ Control::Control(NetworkInterface *interfarce, int socket): interfarce(interfarc
 	output = fdopen(handle,"w");
 }
 int Control::handleReadData(Tox *tox) {
+	int size;
 #ifdef WIN32
 	std::string cmd;
 	getline(cin,cmd);
+	size = cmd.length();
 #else
 	char *line = 0;
 	size_t linelen = 0;
-	int size;
 	size = getline(&line, &linelen, input);
 	if (size == -1) return -1;
 	std::string cmd(line,size);

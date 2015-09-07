@@ -9,7 +9,13 @@ endif(WIN32)
 
 include_directories("${SYSROOT}/include/jsoncpp/" "${SYSROOT}/include/")
 
-add_executable(toxvpn main.cpp control.cpp interface.cpp route_linux.cpp listener.cpp)
+if(WIN32)
+set(extra_files interface_windows.cpp route_windows.cpp)
+else(WIN32)
+set(extra_files interface_linux.cpp route_linux.cpp)
+endif(WIN32)
+
+add_executable(toxvpn main.cpp control.cpp interface.cpp listener.cpp ${extra_files})
 target_link_libraries(toxvpn jsoncpp toxcore sodium pthread)
 
 if(WIN32)

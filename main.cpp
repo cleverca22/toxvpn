@@ -92,6 +92,12 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
 }
+#ifdef WIN32
+void inet_pton(int type, const char *input, struct in_addr *output) {
+	unsigned long result = inet_addr(input);
+	output->S_un.S_addr = result;
+}
+#endif
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
 	printf("status msg #%d %s\n",friend_number,message);
 	Json::Reader reader;

@@ -1,6 +1,8 @@
-#include <sys/socket.h>
+#ifndef WIN32
+# include <sys/socket.h>
+# include <sys/select.h>
+#endif
 #include <unistd.h>
-#include <sys/select.h>
 
 #include "listener.h"
 
