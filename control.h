@@ -8,14 +8,14 @@ namespace ToxVPN {
 
 class Control {
 public:
-	Control(NetworkInterface *interface);
-	Control(NetworkInterface *iterface, int socket);
+	Control(NetworkInterface *interfarce);
+	Control(NetworkInterface *interfarce, int socket);
 	int handleReadData(Tox *tox);
 	int populate_fdset(fd_set *readset);
 	
 	int handle;
 private:
-	NetworkInterface *interface;
+	NetworkInterface *interfarce;
 	FILE *input, *output;
 };
 

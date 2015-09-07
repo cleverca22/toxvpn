@@ -18,7 +18,7 @@
 using namespace std;
 using namespace ToxVPN;
 
-Control::Control(NetworkInterface *interface): interface(interface) {
+Control::Control(NetworkInterface *interfarce): interfarce(interfarce) {
 	this->handle = STDIN_FILENO;
 	input = stdin;
 	output = stdout;
@@ -29,7 +29,7 @@ Control::Control(NetworkInterface *interface): interface(interface) {
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 #endif
 }
-Control::Control(NetworkInterface *interface, int socket): interface(interface) {
+Control::Control(NetworkInterface *interfarce, int socket): interfarce(interfarce) {
 	this->handle = socket;
 	input = fdopen(handle,"r");
 	output = fdopen(handle,"w");
@@ -90,7 +90,7 @@ int Control::handleReadData(Tox *tox) {
 		ss >> friendid;
 		fprintf(output,"going to kick %d\n",friendid);
 		tox_friend_delete(tox,friendid,NULL);
-		interface->removePeer(friendid);
+		interfarce->removePeer(friendid);
 	} else if (buf == "add") {
 		ss >> buf;
 		fprintf(output,"going to connect to %s\n",buf.c_str());
@@ -150,7 +150,7 @@ int Control::handleReadData(Tox *tox) {
 		ss >> buf;
 		if (buf == "show") {
 			std::list<Route>::const_iterator i;
-			for (i=interface->routes.begin(); i!=interface->routes.end(); ++i) {
+			for (i=interfarce->routes.begin(); i!=interfarce->routes.end(); ++i) {
 				Route r = *i;
 				fprintf(output,"%s/%d via friend#%d\n",inet_ntoa(r.network),r.maskbits,r.friend_number);
 			}
