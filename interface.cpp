@@ -18,10 +18,6 @@
 using namespace std;
 using namespace ToxVPN;
 
-static void *start_routine(void *x) {
-	NetworkInterface *nic = (NetworkInterface*)x;
-	nic->loop();
-}
 void *NetworkInterface::loop() {
 	fd_set readset;
 	struct timeval timeout;

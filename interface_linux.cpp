@@ -12,6 +12,10 @@
 using namespace std;
 using namespace ToxVPN;
 
+static void *start_routine(void *x) {
+	NetworkInterface *nic = (NetworkInterface*)x;
+	nic->loop();
+}
 NetworkInterface::NetworkInterface(string myip, Tox *my_tox): my_tox(my_tox) {
 	fd = 0;
 	int err;
@@ -61,4 +65,14 @@ NetworkInterface::NetworkInterface(string myip, Tox *my_tox): my_tox(my_tox) {
 
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
 	ioctl(tun_sock, SIOCSIFFLAGS, &ifr);
+
+	close(tun_sock);
+
+	interfaceIndex = if_nametoindex(ifr.ifr_name);
+	printf("%d %s\n",interfaceIndex,ifr.ifr_name);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+	pthread_create(&reader,&attr,&start_routine,this);
+	pthread_attr_destroy(&attr);
 }
