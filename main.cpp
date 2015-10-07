@@ -252,7 +252,6 @@ int main(int argc, char **argv) {
 		opts->savedata_data = temp;
 		opts->savedata_length = size;
 	}
-	opts->udp_enabled = false;
 
 	want_bootstrap = true;
 	my_tox = tox_new(opts,NULL);
