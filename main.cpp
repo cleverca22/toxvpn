@@ -243,6 +243,7 @@ int main(int argc, char **argv) {
 		opts->savedata_data = temp;
 		opts->savedata_length = size;
 	}
+	opts->udp_enabled = false;
 
 	want_bootstrap = true;
 	my_tox = tox_new(opts,NULL);
@@ -293,7 +294,12 @@ int main(int argc, char **argv) {
 	Control *control = 0;
 	SocketListener *listener = 0;
 	if (unixSocket.length()) {
+#ifdef WIN32
+		puts("error, -l is linux only");
+		return -1;
+#else
 		listener = new SocketListener(mynic,unixSocket);
+#endif
 	} else if (stdin_is_socket) {
 		listener = new SocketListener(mynic);
 	} else {
