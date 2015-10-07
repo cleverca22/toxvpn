@@ -13,7 +13,9 @@
 # include <ws2tcpip.h>
 #else
 # include <sys/utsname.h>
-# include <systemd/sd-daemon.h>
+# ifndef STATIC
+#  include <systemd/sd-daemon.h>
+# endif
 #endif
 #include <json/json.h>
 #include "interface.h"
