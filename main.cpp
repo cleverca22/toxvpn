@@ -9,10 +9,11 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <unistd.h>
-#ifndef WIN32
-#include <sys/utsname.h>
-#else
+#ifdef WIN32
 # include <ws2tcpip.h>
+#else
+# include <sys/utsname.h>
+# include <systemd/sd-daemon.h>
 #endif
 #include <json/json.h>
 #include "interface.h"
@@ -103,6 +104,11 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
 	output->S_un.S_addr = result;
 }
 #endif
+static void notify(const char *message) {
+#ifndef WIN32
+	sd_notify(0,message);
+#endif
+}
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
 	printf("status msg #%d %s\n",friend_number,message);
 	Json::Reader reader;
@@ -132,12 +138,15 @@ void handle_int(int something) {
 void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_data) {
 	switch (connection_status) {
 	case TOX_CONNECTION_NONE:
+		notify("STATUS=offline");
 		puts("connection lost");
 		break;
 	case TOX_CONNECTION_TCP:
+		notify("STATUS=connected via tcp");
 		puts("tcp connection established");
 		break;
 	case TOX_CONNECTION_UDP:
+		notify("STATUS=connected via udp");
 		puts("udp connection established");
 		break;
 	}
@@ -305,6 +314,7 @@ int main(int argc, char **argv) {
 	} else {
 		control = new Control(mynic);
 	}
+	notify("READY=1");
 	while (keep_running) {
 #ifdef USE_SELECT
 		FD_ZERO(&readset);
@@ -360,6 +370,7 @@ int main(int argc, char **argv) {
 		}
 #endif
 	}
+	notify("STOPPING=1");
 	puts("shutting down");
 	saveState(my_tox);
 	tox_kill(my_tox);

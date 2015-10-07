@@ -19,6 +19,8 @@ target_link_libraries(toxvpn jsoncpp toxcore sodium pthread)
 
 if(WIN32)
 target_link_libraries(toxvpn toxcore ws2_32 sodium pthread iphlpapi)
+ELSE(WIN32)
+target_link_libraries(toxvpn systemd)
 endif(WIN32)
 
 install(TARGETS toxvpn DESTINATION bin)
