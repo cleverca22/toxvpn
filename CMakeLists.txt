@@ -6,6 +6,10 @@ else(WIN32)
 set(SYSROOT "/usr")
 endif(WIN32)
 
+if(STATIC)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTATIC")
+endif(STATIC)
+
 include_directories("${SYSROOT}/include/jsoncpp/" "${SYSROOT}/include/")
 
 if(WIN32)
@@ -20,7 +24,10 @@ target_link_libraries(toxvpn jsoncpp toxcore sodium pthread)
 if(WIN32)
 target_link_libraries(toxvpn toxcore ws2_32 sodium pthread iphlpapi)
 ELSE(WIN32)
+if(STATIC)
+else(STATIC)
 target_link_libraries(toxvpn systemd)
+endif(STATIC)
 endif(WIN32)
 
 install(TARGETS toxvpn DESTINATION bin)

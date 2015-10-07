@@ -74,6 +74,7 @@ void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t 
 	memset(tox_printable_id, 0, sizeof(tox_printable_id));
 	to_hex(tox_printable_id, public_key,TOX_PUBLIC_KEY_SIZE);
 	printf("Friend request: %s\nto accept, run 'whitelist %s'\n", message, tox_printable_id);
+	fflush(stdout);
 	saveState(tox);
 }
 void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status, void *user_data) {
@@ -94,6 +95,7 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
 		break;
 	}
 	delete friendname;
+	fflush(stdout);
 }
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
@@ -106,7 +108,9 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
 #endif
 static void notify(const char *message) {
 #ifndef WIN32
+#ifndef STATIC
 	sd_notify(0,message);
+#endif
 #endif
 }
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
@@ -125,6 +129,7 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
 		printf("unable to parse status, ignoring\n");
 	}
 	saveState(tox);
+	fflush(stdout);
 }
 void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data) {
 	if (data[0] == 200) {
@@ -136,21 +141,35 @@ void handle_int(int something) {
 	keep_running = false;
 }
 void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_data) {
+	uint8_t toxid[TOX_ADDRESS_SIZE];
+	tox_self_get_address(tox,toxid);
+	char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
+	memset(tox_printable_id, 0, sizeof(tox_printable_id));
+	to_hex(tox_printable_id, toxid,TOX_ADDRESS_SIZE);
+
+	char buffer[128];
+	const char *msg = 0;
+
 	switch (connection_status) {
 	case TOX_CONNECTION_NONE:
-		notify("STATUS=offline");
+		msg = "offline";
 		puts("connection lost");
 		break;
 	case TOX_CONNECTION_TCP:
-		notify("STATUS=connected via tcp");
+		msg = "connected via tcp";
 		puts("tcp connection established");
 		break;
 	case TOX_CONNECTION_UDP:
-		notify("STATUS=connected via udp");
+		msg = "connected via udp";
 		puts("udp connection established");
 		break;
 	}
+	if (msg) {
+		snprintf(buffer,120,"STATUS=%s, id=%s",msg,tox_printable_id);
+		notify(buffer);
+	}
 	saveState(tox);
+	fflush(stdout);
 }
 std::string readFile(std::string path) {
 	std::string output;
@@ -313,6 +332,7 @@ int main(int argc, char **argv) {
 	} else {
 		control = new Control(mynic);
 	}
+	fflush(stdout);
 	notify("READY=1");
 	while (keep_running) {
 #ifdef USE_SELECT

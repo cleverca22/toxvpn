@@ -69,7 +69,6 @@ NetworkInterface::NetworkInterface(string myip, Tox *my_tox): my_tox(my_tox) {
 	close(tun_sock);
 
 	interfaceIndex = if_nametoindex(ifr.ifr_name);
-	printf("%d %s\n",interfaceIndex,ifr.ifr_name);
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
