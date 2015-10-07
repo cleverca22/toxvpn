@@ -1,8 +1,13 @@
 #ifndef WIN32
 # include <sys/socket.h>
 # include <sys/select.h>
+# include <sys/stat.h>
 #endif
 #include <unistd.h>
+#include <strings.h>
+#include <string.h>
+#include <sys/un.h>
+#include <errno.h>
 
 #include "listener.h"
 
@@ -10,6 +15,19 @@ using namespace ToxVPN;
 
 SocketListener::SocketListener(NetworkInterface *interfarce): interfarce(interfarce) {
 	socket = dup(0);
+}
+SocketListener::SocketListener(NetworkInterface *iface, std::string unixSocket): interfarce(iface) {
+	socket = ::socket(AF_UNIX, SOCK_STREAM, 0);
+	struct sockaddr_un addr;
+	bzero(&addr,sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, unixSocket.c_str(), sizeof(addr.sun_path)-1);
+	unlink(unixSocket.c_str());
+	if (bind(socket, (struct sockaddr*)&addr, sizeof(addr))) {
+		printf("unable to bind: %s\n",strerror(errno));
+	}
+	chmod(unixSocket.c_str(),0777);
+	listen(socket,5);
 }
 int SocketListener::populate_fdset(fd_set *readset) {
 	std::list<Control*>::const_iterator i;

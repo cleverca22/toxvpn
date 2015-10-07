@@ -31,7 +31,6 @@ void *NetworkInterface::loop() {
 		if (r > 0) {
 			if (FD_ISSET(fd,&readset)) handleReadData();
 		} else if (r == 0) {
-			puts("select == 0");
 		} else {
 			printf("select == %d\n",r);
 			printf("select error fd:%d r:%d errno:%d %s\n",fd,r,errno,strerror(errno));

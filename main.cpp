@@ -76,18 +76,23 @@ void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t 
 	saveState(tox);
 }
 void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status, void *user_data) {
+	size_t namesize = tox_friend_get_name_size(tox,friend_number,0);
+	uint8_t *friendname = new uint8_t[namesize+1];
+	tox_friend_get_name(tox,friend_number,friendname,NULL);
+	friendname[namesize] = 0;
 	switch (connection_status) {
 	case TOX_CONNECTION_NONE:
-		printf("friend %d went offline\n",friend_number);
+		printf("friend %d(%s) went offline\n",friend_number,friendname);
 		mynic->removePeer(friend_number);
 		break;
 	case TOX_CONNECTION_TCP:
-		printf("friend %d connected via tcp\n",friend_number);
+		printf("friend %d(%s) connected via tcp\n",friend_number,friendname);
 		break;
 	case TOX_CONNECTION_UDP:
-		printf("friend %d connected via udp\n",friend_number);
+		printf("friend %d(%s) connected via udp\n",friend_number,friendname);
 		break;
 	}
+	delete friendname;
 }
 void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
 	printf("message %d %s\n",friend_number,message);
@@ -182,13 +187,17 @@ int main(int argc, char **argv) {
 	int opt;
 	bool stdin_is_socket = false;
 	string changeIp;
-	while ((opt = getopt(argc,argv,"si:")) != -1) {
+	string unixSocket;
+	while ((opt = getopt(argc,argv,"si:l:")) != -1) {
 		switch (opt) {
 		case 's':
 			stdin_is_socket = true;
 			break;
 		case 'i':
 			changeIp = optarg;
+			break;
+		case 'l':
+			unixSocket = optarg;
 			break;
 		}
 	}
@@ -283,7 +292,9 @@ int main(int argc, char **argv) {
 	mynic = new NetworkInterface(myip,my_tox);
 	Control *control = 0;
 	SocketListener *listener = 0;
-	if (stdin_is_socket) {
+	if (unixSocket.length()) {
+		listener = new SocketListener(mynic,unixSocket);
+	} else if (stdin_is_socket) {
 		listener = new SocketListener(mynic);
 	} else {
 		control = new Control(mynic);
