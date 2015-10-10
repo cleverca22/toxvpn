@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
 		}
 	} else {
 		if (changeIp.length() > 0) {
-			configRoot["myip"] = changeIp;
+			configRoot["myip"] = myip = changeIp;
 		} else {
 			cout << "what is the VPN ip of this computer?" << endl;
 			cin >> myip;
