@@ -25,7 +25,7 @@ SocketListener::SocketListener(NetworkInterface *iface, std::string unixSocket):
 	strncpy(addr.sun_path, unixSocket.c_str(), sizeof(addr.sun_path)-1);
 	unlink(unixSocket.c_str());
 	if (bind(socket, (struct sockaddr*)&addr, sizeof(addr))) {
-		printf("unable to bind: %s\n",strerror(errno));
+		printf("unable to bind control socket: %s\n",strerror(errno));
 	}
 	chmod(unixSocket.c_str(),0777);
 	listen(socket,5);

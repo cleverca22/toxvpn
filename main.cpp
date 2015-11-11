@@ -13,6 +13,8 @@
 # include <ws2tcpip.h>
 #else
 # include <sys/utsname.h>
+# include <sys/types.h>
+# include <pwd.h>
 # ifndef STATIC
 #  include <systemd/sd-daemon.h>
 # endif
@@ -186,12 +188,16 @@ std::string readFile(std::string path) {
 	return output;
 }
 void saveConfig(Json::Value root) {
-	Json::FastWriter fw;
-	std::string json = fw.write(root);
-	FILE *handle = fopen("config.json","w");
-	const char *data = json.c_str();
-	fwrite(data,json.length(),1,handle);
-	fclose(handle);
+  Json::FastWriter fw;
+  std::string json = fw.write(root);
+  FILE *handle = fopen("config.json","w");
+  if (!handle) {
+    cerr << "unable to open config file for writting" << endl;
+    exit(-1);
+  }
+  const char *data = json.c_str();
+  fwrite(data,json.length(),1,handle);
+  fclose(handle);
 }
 void do_bootstrap(Tox *tox) {
 	uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
@@ -218,21 +224,41 @@ int main(int argc, char **argv) {
 	bool stdin_is_socket = false;
 	string changeIp;
 	string unixSocket;
-	while ((opt = getopt(argc,argv,"si:l:")) != -1) {
-		switch (opt) {
-		case 's':
-			stdin_is_socket = true;
-			break;
-		case 'i':
-			changeIp = optarg;
-			break;
-		case 'l':
-			unixSocket = optarg;
-			break;
-		}
-	}
-	
-	std::string config = readFile("config.json");
+  struct passwd *target_user = 0;
+  while ((opt = getopt(argc,argv,"si:l:u:")) != -1) {
+    switch (opt) {
+    case 's':
+      stdin_is_socket = true;
+      break;
+    case 'i':
+      changeIp = optarg;
+      break;
+    case 'l':
+      unixSocket = optarg;
+      break;
+    case 'u':
+      target_user = getpwnam(optarg);
+      assert(target_user);
+      break;
+    }
+  }
+  
+  puts("creating interface");
+  mynic = new NetworkInterface(myip);
+  if (target_user) {
+    puts("setting uid");
+    setuid(target_user->pw_uid);
+  } else target_user = getpwnam("root");
+  if (chdir(target_user->pw_dir)) {
+    printf("unable to cd into $HOME: %s\n",strerror(errno));
+    return -1;
+  }
+  if (chdir(".toxvpn")) {
+    mkdir(".toxvpn",0755);
+    chdir(".toxvpn");
+  }
+
+  std::string config = readFile("config.json");
 	Json::Reader reader;
 	if (reader.parse(config, configRoot)) {
 		if (changeIp.length() > 0) {
@@ -319,7 +345,7 @@ int main(int argc, char **argv) {
 #ifdef USE_SELECT
 	fd_set readset;
 #endif
-	mynic = new NetworkInterface(myip,my_tox);
+  mynic->set_tox(my_tox);
 	Control *control = 0;
 	SocketListener *listener = 0;
 	if (unixSocket.length()) {

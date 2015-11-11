@@ -3,6 +3,7 @@
 #include <string.h>
 #include <iostream>
 #ifndef WIN32
+# include <assert.h>
 # include <sys/ioctl.h>
 # include <net/if.h>
 # include <linux/if_tun.h>
@@ -10,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "interface.h"
 #include "route.h"
@@ -38,6 +40,19 @@ void *NetworkInterface::loop() {
 	}
 	return 0;
 }
+static void *start_routine(void *x) {
+  NetworkInterface *nic = (NetworkInterface*)x;
+  nic->loop();
+}
+void NetworkInterface::set_tox(Tox *my_tox) {
+  assert(this->my_tox == 0);
+  this->my_tox = my_tox;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+  pthread_create(&reader,&attr,&start_routine,this);
+  pthread_attr_destroy(&attr);
+}
 static const uint8_t required[] = { 0x00, 0x00, 0x08, 0x00, 0x45 };
 void dump_packet(uint8_t *buffer, int size) {
 	for (int i=0; i<size; i++) {
@@ -48,6 +63,11 @@ void dump_packet(uint8_t *buffer, int size) {
 void NetworkInterface::handleReadData() {
 	uint8_t readbuffer[1500];
 	int size = read(fd,readbuffer,1500);
+  if (size < 0) {
+    printf("unable to read from tun %d, %s\n",fd,strerror(errno));
+    exit(-2);
+    return;
+  }
 	for (int i=0; i<sizeof(required); i++) {
 		if (readbuffer[i] != required[i]) {
 			puts("unsupported packet, dropping");

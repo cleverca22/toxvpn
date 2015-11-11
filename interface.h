@@ -33,13 +33,14 @@ public:
 };
 class NetworkInterface {
 public:
-	NetworkInterface(std::string myip, Tox *my_tox);
+	NetworkInterface(std::string myip);
 	~NetworkInterface();
 	void *loop();
 	void setPeerIp(struct in_addr peer, int friend_number);
 	void removePeer(int friend_number);
 	void addPeerRoute(struct in_addr peer, int friend_number);
-	void processPacket(const uint8_t *data, size_t bytes, int friend_number);
+  void processPacket(const uint8_t *data, size_t bytes, int friend_number);
+  void set_tox(Tox *my_tox);
 
 	std::list<Route> routes;
 private:
