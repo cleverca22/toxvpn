@@ -26,7 +26,7 @@ target_link_libraries(toxvpn toxcore ws2_32 sodium pthread iphlpapi)
 ELSE(WIN32)
 if(STATIC)
 else(STATIC)
-target_link_libraries(toxvpn systemd)
+target_link_libraries(toxvpn systemd cap)
 endif(STATIC)
 endif(WIN32)
 

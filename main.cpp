@@ -15,6 +15,8 @@
 # include <sys/utsname.h>
 # include <sys/types.h>
 # include <pwd.h>
+# include <sys/capability.h>
+# include <sys/prctl.h>
 # ifndef STATIC
 #  include <systemd/sd-daemon.h>
 # endif
@@ -248,24 +250,24 @@ int main(int argc, char **argv) {
   mynic = new NetworkInterface();
   if (target_user) {
     puts("setting uid");
-    /*cap_value_t cap_values[] = { CAP_NET_ADMIN };
+    cap_value_t cap_values[] = { CAP_NET_ADMIN };
     cap_t caps;
     
     caps = cap_get_proc();
     cap_set_flag(caps, CAP_PERMITTED, 1, cap_values, CAP_SET);
     cap_set_proc(caps);
     prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
-    cap_free(caps);*/
+    cap_free(caps);
 
     setgid(target_user->pw_gid);
     setuid(target_user->pw_uid);
 
-    /*caps = cap_get_proc();
+    caps = cap_get_proc();
     cap_clear(caps);
     cap_set_flag(caps, CAP_PERMITTED, 1, cap_values, CAP_SET);
     cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_values, CAP_SET);
     cap_set_proc(caps);
-    cap_free(caps);*/
+    cap_free(caps);
   } else target_user = getpwnam("root");
   if (chdir(target_user->pw_dir)) {
     printf("unable to cd into $HOME: %s\n",strerror(errno));
