@@ -240,14 +240,22 @@ int main(int argc, char **argv) {
       unixSocket = optarg;
       break;
     case 'u':
+#ifdef WIN32
+      puts("-u not currently supported on windows");
+#else
       target_user = getpwnam(optarg);
       assert(target_user);
+#endif
       break;
     }
   }
   
   puts("creating interface");
   mynic = new NetworkInterface();
+#ifdef WIN32
+  puts("no drop root support yet");
+  if (1) { // TODO, cd into %AppData%
+#else
   if (target_user) {
     puts("setting uid");
     cap_value_t cap_values[] = { CAP_NET_ADMIN };
@@ -270,11 +278,16 @@ int main(int argc, char **argv) {
     cap_free(caps);
   } else target_user = getpwnam("root");
   if (chdir(target_user->pw_dir)) {
+#endif
     printf("unable to cd into $HOME: %s\n",strerror(errno));
     return -1;
   }
   if (chdir(".toxvpn")) {
-    mkdir(".toxvpn",0755);
+    mkdir(".toxvpn"
+#ifndef WIN32
+,0755
+#endif
+);
     chdir(".toxvpn");
   }
 
