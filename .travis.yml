@@ -30,7 +30,7 @@ before_script:
 script:
   - mkdir build
   - cd build
-  - cmake ../ -DSTATIC=1 -DTOX_PREFIX=${HOME}/toxcore/
+  - cmake ../ -DSTATIC=1 -DTOX_PREFIX=${HOME}/toxcore/ -DSODIUM_PREFIX=${HOME}/libsodium/lib/
   - make
 
 notification:

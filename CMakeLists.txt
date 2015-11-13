@@ -17,6 +17,10 @@ include_directories("${TOX_PREFIX}/include")
 LINK_DIRECTORIES("${TOX_PREFIX}/lib")
 endif(TOX_PREFIX)
 
+if(SODIUM_PREFIX)
+link_directories("${SODIUM_PREFIX}/lib")
+endif(SODIUM_PREFIX)
+
 if(WIN32)
 set(extra_files interface_windows.cpp route_windows.cpp)
 else(WIN32)
