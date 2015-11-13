@@ -341,8 +341,10 @@ int main(int argc, char **argv) {
 
   want_bootstrap = true;
   my_tox = tox_new(opts,NULL);
-  if (!my_tox) opts->ipv6_enabled = false;
-  my_tox = tox_new(opts,NULL);
+  if (!my_tox) {
+    opts->ipv6_enabled = false;
+    my_tox = tox_new(opts,NULL);
+  }
   assert(my_tox);
   if (opts->savedata_data) delete opts->savedata_data;
   tox_options_free(opts); opts = 0;
