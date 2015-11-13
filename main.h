@@ -44,15 +44,14 @@
   #include <sys/select.h>
   #include <sys/socket.h>
   #include <sys/utsname.h>
-  #include <linux/if_tun.h>
-  #include <linux/netlink.h>
-  #include <linux/rtnetlink.h>
   #include <net/if.h>
   #include <arpa/inet.h>
   #include <netinet/in.h>
 
 #  ifndef __APPLE__
 #    include <linux/if_tun.h>
+#    include <linux/netlink.h>
+#    include <linux/rtnetlink.h>
 #    include <sys/capability.h>
 #    include <sys/prctl.h>
 #    include <asm/types.h>
