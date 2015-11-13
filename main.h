@@ -75,7 +75,6 @@
 #include "control.h"
 #include "route.h"
 #include "listener.h"
-#include "tunnel.h"
 
 #define USE_SELECT
 
