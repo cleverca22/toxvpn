@@ -232,6 +232,7 @@ int main(int argc, char **argv) {
 #else
   if (target_user) {
     puts("setting uid");
+#ifndef __APPLE__
     cap_value_t cap_values[] = { CAP_NET_ADMIN };
     cap_t caps;
 
@@ -240,16 +241,19 @@ int main(int argc, char **argv) {
     cap_set_proc(caps);
     prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
     cap_free(caps);
+#endif
 
     setgid(target_user->pw_gid);
     setuid(target_user->pw_uid);
 
+#ifndef __APPLE__
     caps = cap_get_proc();
     cap_clear(caps);
     cap_set_flag(caps, CAP_PERMITTED, 1, cap_values, CAP_SET);
     cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_values, CAP_SET);
     cap_set_proc(caps);
     cap_free(caps);
+#endif
   } else target_user = getpwnam("root");
   if (chdir(target_user->pw_dir)) {
 #endif

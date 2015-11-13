@@ -35,8 +35,6 @@
   #include <winsock2.h>
 #else
   #include <pwd.h>
-  #include <sys/capability.h>
-  #include <sys/prctl.h>
   #include <assert.h>
   #include <errno.h>
   #include <asm/types.h>
@@ -54,9 +52,11 @@
   #include <arpa/inet.h>
   #include <netinet/in.h>
 
-  #ifndef __APPLE__
-    #include <linux/if_tun.h>
-  #endif
+#  ifndef __APPLE__
+#    include <linux/if_tun.h>
+#    include <sys/capability.h>
+#    include <sys/prctl.h>
+#  endif
 
   #ifndef STATIC
     #include <systemd/sd-daemon.h>
