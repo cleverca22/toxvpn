@@ -2,6 +2,9 @@ language: c
 sudo: false
 compiler:
   - gcc
+os:
+  - linux
+  - osx
 
 addons:
   apt:
