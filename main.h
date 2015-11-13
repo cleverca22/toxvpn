@@ -37,7 +37,6 @@
   #include <pwd.h>
   #include <assert.h>
   #include <errno.h>
-  #include <asm/types.h>
   #include <sys/un.h>
   #include <sys/stat.h>
   #include <sys/types.h>
@@ -56,6 +55,7 @@
 #    include <linux/if_tun.h>
 #    include <sys/capability.h>
 #    include <sys/prctl.h>
+#    include <asm/types.h>
 #  endif
 
   #ifndef STATIC
