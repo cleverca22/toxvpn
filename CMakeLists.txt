@@ -12,6 +12,11 @@ endif(STATIC)
 
 include_directories("${SYSROOT}/include/jsoncpp/" "${SYSROOT}/include/")
 
+if(TOX_PREFIX)
+include_directories("${TOX_PREFIX}/include")
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${TOX_PREFIX}/lib")
+endif(TOX_PREFIX)
+
 if(WIN32)
 set(extra_files interface_windows.cpp route_windows.cpp)
 else(WIN32)
