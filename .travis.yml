@@ -18,6 +18,7 @@ cache:
 before_script:
   #installing libsodium, needed for Core
   - ./scripts/libsodium.sh
+  - ./scripts/jsoncpp.sh
   #creating libraries links and updating cache
   #- sudo ldconfig > /dev/null
   # and toxcore
