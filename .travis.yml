@@ -16,11 +16,13 @@ before_script:
   - sudo ldconfig > /dev/null
   # and toxcore
   - git clone git://github.com/irungentoo/toxcore.git > /dev/null
+  - cd toxcore
   - autoreconf -i
   - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox
   - make -j3
   - make check
   - make dist
+  - cd ..
 
 script:
   - mkdir build
