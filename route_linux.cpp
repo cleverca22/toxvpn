@@ -1,9 +1,4 @@
-#include <asm/types.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <arpa/inet.h>
+#include "main.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -31,7 +26,7 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char *gateway) {
 
   // compute the initial length of the service request
   int rtl = sizeof(struct rtmsg);
-  
+
   // add first attrib
   // set destination ip addr and increment the netlink buf size
   rtap = (struct rtattr*) req.buf;

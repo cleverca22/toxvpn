@@ -1,20 +1,3 @@
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <iostream>
-#ifndef WIN32
-# include <assert.h>
-# include <sys/ioctl.h>
-# include <net/if.h>
-# include <linux/if_tun.h>
-#endif
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include "interface.h"
-#include "route.h"
 #include "main.h"
 
 using namespace std;

@@ -9,9 +9,73 @@
  *
  * See the COPYING file for more details.
  */
-#pragma once
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <fcntl.h>
 
-#include <string>
+#include <assert.h>
+#include <iostream>
+#include <list>
+#include <pthread.h>
+#include <signal.h>
+#include <sstream>
+
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+
+#include <tox/tox.h>
+
+
+#ifdef WIN32
+  #include <json-c/json.h>
+  #include <ws2tcpip.h>
+  #include <winsock2.h>
+#else
+  #include <pwd.h>
+  #include <sys/capability.h>
+  #include <sys/prctl.h>
+  #include <assert.h>
+  #include <errno.h>
+  #include <asm/types.h>
+  #include <json/json.h>
+  #include <sys/un.h>
+  #include <sys/stat.h>
+  #include <sys/types.h>
+  #include <sys/ioctl.h>
+  #include <sys/select.h>
+  #include <sys/socket.h>
+  #include <sys/utsname.h>
+  #include <linux/if_tun.h>
+  #include <linux/netlink.h>
+  #include <linux/rtnetlink.h>
+  #include <net/if.h>
+  #include <arpa/inet.h>
+  #include <netinet/in.h>
+
+  #ifndef __APPLE__
+    #include <linux/if_tun.h>
+  #endif
+
+  #ifndef STATIC
+    #include <systemd/sd-daemon.h>
+  #endif
+
+#endif
+
+
+#ifdef USE_EPOLL
+ #include <sys/epoll.h>
+#endif
+
+#include "epoll_target.h"
+
+#include "interface.h"
+#include "control.h"
+#include "route.h"
+#include "listener.h"
+#include "tunnel.h"
 
 #define USE_SELECT
 

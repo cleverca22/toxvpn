@@ -1,15 +1,4 @@
-#ifndef WIN32
-# include <sys/socket.h>
-# include <sys/select.h>
-# include <sys/stat.h>
-# include <sys/un.h>
-#endif
-#include <unistd.h>
-#include <strings.h>
-#include <string.h>
-#include <errno.h>
-
-#include "listener.h"
+#include "main.h"
 
 using namespace ToxVPN;
 
