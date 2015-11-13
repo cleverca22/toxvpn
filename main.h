@@ -29,7 +29,7 @@
 
 
 #ifdef WIN32
-  #include <json-c/json.h>
+  #include <json/json.h>
   #include <ws2tcpip.h>
   #include <winsock2.h>
 #else
