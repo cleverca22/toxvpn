@@ -8,6 +8,9 @@ addons:
     packages:
     - libjsoncpp-dev
     - libcap-dev
+cache:
+  directories:
+  - $HOME/libsodium
 
 before_script:
   #installing libsodium, needed for Core
@@ -18,7 +21,7 @@ before_script:
   - git clone git://github.com/irungentoo/toxcore.git > /dev/null
   - cd toxcore
   - autoreconf -i
-  - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox --with-libsodium-headers=${HOME}/libsodium/ --with-libsodium-libs=${HOME}/libsodium/ --prefix=${HOME}/toxcore/
+  - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox --with-libsodium-headers=${HOME}/libsodium/include/ --with-libsodium-libs=${HOME}/libsodium/lib/ --prefix=${HOME}/toxcore/
   - make -j3
   - make check
   - make install
