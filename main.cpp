@@ -227,8 +227,9 @@ int main(int argc, char **argv) {
   bool stdin_is_socket = false;
   string changeIp;
   string unixSocket;
+  int port = 33445;
   struct passwd *target_user = 0;
-  while ((opt = getopt(argc,argv,"si:l:u:")) != -1) {
+  while ((opt = getopt(argc,argv,"si:l:u:p:")) != -1) {
     switch (opt) {
     case 's':
       stdin_is_socket = true;
@@ -246,6 +247,9 @@ int main(int argc, char **argv) {
       target_user = getpwnam(optarg);
       assert(target_user);
 #endif
+      break;
+    case 'p':
+      port = strtol(optarg,0,10);
       break;
     }
   }
@@ -320,6 +324,8 @@ int main(int argc, char **argv) {
   Tox *my_tox;
   bool want_bootstrap = false;
   struct Tox_Options *opts = tox_options_new(NULL);
+  opts->start_port = port;
+  opts->end_port = port;
   int oldstate = open("savedata",O_RDONLY);
   if (oldstate >= 0) {
     struct stat info;
@@ -335,6 +341,9 @@ int main(int argc, char **argv) {
 
   want_bootstrap = true;
   my_tox = tox_new(opts,NULL);
+  if (!my_tox) opts->ipv6_enabled = false;
+  my_tox = tox_new(opts,NULL);
+  assert(my_tox);
   if (opts->savedata_data) delete opts->savedata_data;
   tox_options_free(opts); opts = 0;
 
