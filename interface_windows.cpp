@@ -1,4 +1,4 @@
-#include "interface.h"
+#include "main.h"
 
 using namespace std;
 using namespace ToxVPN;

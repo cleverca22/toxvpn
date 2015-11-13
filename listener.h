@@ -1,9 +1,3 @@
-#pragma once
-
-#include <list>
-
-#include "control.h"
-
 namespace ToxVPN {
 
 class SocketListener {

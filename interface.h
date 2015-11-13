@@ -9,19 +9,6 @@
  *
  * See the COPYING file for more details.
  */
-#pragma once
-#include <string>
-#include <tox/tox.h>
-#include <sys/types.h>
-#ifdef WIN32
-# include <winsock2.h>
-#else
-# include <sys/socket.h>
-# include <arpa/inet.h>
-#endif
-#include <list>
-#include <pthread.h>
-
 namespace ToxVPN {
 
 class Route {

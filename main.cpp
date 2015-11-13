@@ -1,34 +1,4 @@
-#include <tox/tox.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <unistd.h>
-#ifdef WIN32
-# include <ws2tcpip.h>
-#else
-# include <sys/utsname.h>
-# include <sys/types.h>
-# include <pwd.h>
-# include <sys/capability.h>
-# include <sys/prctl.h>
-# ifndef STATIC
-#  include <systemd/sd-daemon.h>
-# endif
-#endif
-#include <json/json.h>
-#include "interface.h"
-#include "control.h"
-#include <errno.h>
-#include <iostream>
 #include "main.h"
-#include "route.h"
-#include "listener.h"
 
 #define BOOTSTRAP_ADDRESS "23.226.230.47"
 #define BOOTSTRAP_PORT 33445
@@ -253,7 +223,7 @@ int main(int argc, char **argv) {
       break;
     }
   }
-  
+
   puts("creating interface");
   mynic = new NetworkInterface();
 #ifdef WIN32
@@ -264,7 +234,7 @@ int main(int argc, char **argv) {
     puts("setting uid");
     cap_value_t cap_values[] = { CAP_NET_ADMIN };
     cap_t caps;
-    
+
     caps = cap_get_proc();
     cap_set_flag(caps, CAP_PERMITTED, 1, cap_values, CAP_SET);
     cap_set_proc(caps);
@@ -355,7 +325,7 @@ int main(int argc, char **argv) {
   memset(tox_printable_id, 0, sizeof(tox_printable_id));
   to_hex(tox_printable_id, toxid,TOX_ADDRESS_SIZE);
   printf("my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
-  
+
   /* Register the callbacks */
   tox_callback_friend_request(my_tox, MyFriendRequestCallback, NULL);
   tox_callback_friend_message(my_tox, MyFriendMessageCallback, NULL);

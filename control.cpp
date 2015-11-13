@@ -1,19 +1,4 @@
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string>
-#include <iostream>
-#include <sstream>
-#ifdef WIN32
-# include <winsock2.h>
-#else
-# include <sys/select.h>
-#endif
-
-#include "control.h"
 #include "main.h"
-#include "interface.h"
 
 using namespace std;
 using namespace ToxVPN;

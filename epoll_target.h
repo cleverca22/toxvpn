@@ -1,9 +1,3 @@
-#pragma once
-
-#ifdef USE_EPOLL
-#include <sys/epoll.h>
-#endif
-
 extern int epoll_handle;
 
 class EpollTarget {

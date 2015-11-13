@@ -1,14 +1,4 @@
-#include "interface.h"
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <linux/if_tun.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <iostream>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include "main.h"
 
 using namespace std;
 using namespace ToxVPN;
@@ -38,7 +28,7 @@ void NetworkInterface::configure(string myip,Tox *my_tox) {
 #else
   ifr.ifr_flags = IFF_TUN;
   strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ);
-  
+
   if( (err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
     if (errno == EPERM) {
       cerr << "no permission to create tun device" << endl;
@@ -63,7 +53,7 @@ void NetworkInterface::configure(string myip,Tox *my_tox) {
   address.sin_family = AF_INET;
   inet_aton(myip.c_str(), &address.sin_addr);
   memcpy(&ifr.ifr_addr, &address, sizeof(address));
-  err = ioctl(tun_sock, SIOCSIFADDR, &ifr); 
+  err = ioctl(tun_sock, SIOCSIFADDR, &ifr);
   if (err) printf("error %d %s setting ip\n",errno,strerror(errno));
 
   inet_aton("10.123.123.123", &address.sin_addr);
