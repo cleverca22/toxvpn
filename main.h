@@ -27,9 +27,10 @@
 
 #include <tox/tox.h>
 
+#include <json/json.h>
+
 
 #ifdef WIN32
-  #include <json/json.h>
   #include <ws2tcpip.h>
   #include <winsock2.h>
 #else
@@ -39,7 +40,6 @@
   #include <assert.h>
   #include <errno.h>
   #include <asm/types.h>
-  #include <json/json.h>
   #include <sys/un.h>
   #include <sys/stat.h>
   #include <sys/types.h>
@@ -64,6 +64,7 @@
 
 #endif
 
+#define USE_SELECT
 
 #ifdef USE_EPOLL
  #include <sys/epoll.h>
@@ -76,7 +77,6 @@
 #include "route.h"
 #include "listener.h"
 
-#define USE_SELECT
 
 
 void to_hex(char *a, const uint8_t *p, int size);

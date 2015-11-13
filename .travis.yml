@@ -21,7 +21,7 @@ before_script:
   - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox
   - make -j3
   - make check
-  - make dist
+  - sudo make install
   - cd ..
 
 script:
