@@ -28,7 +28,7 @@ before_script:
 script:
   - mkdir build
   - cd build
-  - cmake ../ -DSTATIC
+  - cmake ../ -DSTATIC=1
   - make
 
 notification:
