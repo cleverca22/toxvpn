@@ -2,5 +2,6 @@
 
 if [ $TRAVIS_OS_NAME == osx ]; then
   brew tap cuber/homebrew-jsoncpp
-  sudo brew install jsoncpp
+  brew unlink json-c
+  brew install jsoncpp
 fi
