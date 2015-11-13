@@ -1,0 +1,31 @@
+language: c
+compiler:
+  - gcc
+
+before_script:
+  #installing libsodium, needed for Core
+  - git clone git://github.com/jedisct1/libsodium.git > /dev/null
+  - cd libsodium
+  - git checkout tags/1.0.0 > /dev/null
+  - ./autogen.sh > /dev/null
+  - ./configure > /dev/null
+  - make check -j3 > /dev/null
+  - sudo make install >/dev/null
+  - cd ..
+  #creating libraries links and updating cache
+  - sudo ldconfig > /dev/null
+  # and toxcore
+  - git clone git://github.com/irungentoo/toxcore.git > /dev/null
+  - autoreconf -i
+  - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox
+  - make -j3
+  - make check
+  - make dist
+
+script:
+  - mkdir build
+  - cd build
+  - cmake ../
+
+notification:
+  email: false
