@@ -20,9 +20,9 @@ endif(SYSTEMD)
 if(APPLE)
   find_library(JSONCPP_LIBRARIES json REQUIRED ${JSONCPP_PREFIX})
 else(APPLE)
-  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED /usr/lib ${JSONCPP_PREFIX})
+  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED HINTS ${JSONCPP_PREFIX} PATHS /usr/lib)
 endif(APPLE)
-find_path(JSONCPP_INCLUDE_DIRS json/value.h REQUIRED /usr/include/jsoncpp/)
+find_path(JSONCPP_INCLUDE_DIRS json/value.h REQUIRED /usr/include/jsoncpp/ /usr/include/)
 
 
 find_library(TOXCORE_LIBRARIES toxcore REQUIRED HINTS "${TOX_PREFIX}/lib")
