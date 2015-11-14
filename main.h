@@ -61,7 +61,7 @@
 #    include <sys/capability.h>
 #    include <sys/prctl.h>
 #    include <asm/types.h>
-#    ifndef STATIC
+#    ifdef SYSTEMD
 #      include <systemd/sd-daemon.h>
 #    endif
 #  endif

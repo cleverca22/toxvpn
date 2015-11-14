@@ -83,7 +83,7 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
 }
 #endif
 static void notify(const char *message) {
-#if !defined(WIN32) && !defined(STATIC) && !defined(__CYGWIN__)
+#ifdef SYSTEMD
   sd_notify(0,message);
 #endif
 }

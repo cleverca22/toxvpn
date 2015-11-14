@@ -12,6 +12,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTATIC")
 endif(STATIC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Wextra")
 
+if(SYSTEMD)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSYSTEMD")
+endif(SYSTEMD)
+
 if(APPLE)
   find_library(JSONCPP_LIBRARIES json REQUIRED)
 else(APPLE)
