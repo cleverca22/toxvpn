@@ -33,7 +33,7 @@ public:
 private:
   void handleReadData();
   bool findRoute(Route *route, struct in_addr peer);
-  void forwardPacket(Route route, uint8_t *buffer, int bytes);
+  void forwardPacket(Route route, uint8_t *buffer, ssize_t bytes);
 
   pthread_t reader;
   int fd;

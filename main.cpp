@@ -35,12 +35,12 @@ void to_hex(char *a, const uint8_t *p, int size) {
   }
 }
 void saveState(Tox *tox) {
-  int size = tox_get_savedata_size(tox);
+  size_t size = tox_get_savedata_size(tox);
   uint8_t *savedata = new uint8_t[size];
   tox_get_savedata(tox,savedata);
   int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
   assert(fd);
-  int written = write(fd,savedata,size);
+  ssize_t written = write(fd,savedata,size);
   assert(written == size);
   close(fd);
 }
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     struct stat info;
     fstat(oldstate,&info);
     uint8_t *temp = new uint8_t[info.st_size];
-    int size = read(oldstate,temp,info.st_size);
+    ssize_t size = read(oldstate,temp,info.st_size);
     close(oldstate);
     assert(size == info.st_size);
     opts->savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;

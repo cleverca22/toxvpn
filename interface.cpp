@@ -24,7 +24,7 @@ void *NetworkInterface::loop() {
   return 0;
 }
 static const uint8_t required[] = { 0x00, 0x00, 0x08, 0x00, 0x45 };
-void dump_packet(uint8_t *buffer, int size) {
+void dump_packet(uint8_t *buffer, ssize_t size) {
   for (int i=0; i<size; i++) {
     printf("%02x ",buffer[i]);
   }
@@ -32,13 +32,13 @@ void dump_packet(uint8_t *buffer, int size) {
 }
 void NetworkInterface::handleReadData() {
   uint8_t readbuffer[1500];
-  int size = read(fd,readbuffer,1500);
+  ssize_t size = read(fd,readbuffer,1500);
   if (size < 0) {
     printf("unable to read from tun %d, %s\n",fd,strerror(errno));
     exit(-2);
     return;
   }
-  for (int i=0; i<sizeof(required); i++) {
+  for (unsigned int i=0; i<sizeof(required); i++) {
     if (readbuffer[i] != required[i]) {
       puts("unsupported packet, dropping");
       dump_packet(readbuffer,size);
@@ -59,7 +59,7 @@ void NetworkInterface::handleReadData() {
     printf("no route found for %s\n",inet_ntoa(*dest));
   }
 }
-void NetworkInterface::forwardPacket(Route route, uint8_t *readbuffer, int size) {
+void NetworkInterface::forwardPacket(Route route, uint8_t *readbuffer, ssize_t size) {
   uint8_t buffer[1500+OFFSET];
   buffer[0] = 200;
 #ifdef __APPLE__

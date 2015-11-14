@@ -13,7 +13,7 @@ NetworkInterface::NetworkInterface(): my_tox(0) {
     cerr << "unable to open /dev/net/tun" << endl;
   }
 }
-void NetworkInterface::configure(string myip,Tox *my_tox) {
+void NetworkInterface::configure(string ip_in,Tox *tox_in) {
   int err;
   struct ifreq ifr;
   memset(&ifr, 0, sizeof(ifr));
@@ -38,10 +38,10 @@ void NetworkInterface::configure(string myip,Tox *my_tox) {
   err = ioctl(tun_sock, SIOCSIFMTU, &ifr);
   if (err) printf("error %d setting mtu\n",err);
 
-  printf("setting ip to %s\n",myip.c_str());
+  printf("setting ip to %s\n",ip_in.c_str());
   struct sockaddr_in address;
   address.sin_family = AF_INET;
-  inet_aton(myip.c_str(), &address.sin_addr);
+  inet_aton(ip_in.c_str(), &address.sin_addr);
   memcpy(&ifr.ifr_addr, &address, sizeof(address));
   err = ioctl(tun_sock, SIOCSIFADDR, &ifr);
   if (err) printf("error %d %s setting ip\n",errno,strerror(errno));
@@ -57,7 +57,7 @@ void NetworkInterface::configure(string myip,Tox *my_tox) {
   close(tun_sock);
 
   interfaceIndex = if_nametoindex(ifr.ifr_name);
-  this->my_tox = my_tox;
+  my_tox = tox_in;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);

@@ -4,7 +4,7 @@ class Control {
 public:
 	Control(NetworkInterface *interfarce);
 	Control(NetworkInterface *interfarce, int socket);
-	int handleReadData(Tox *tox);
+	ssize_t handleReadData(Tox *tox);
 	int populate_fdset(fd_set *readset);
 
 	int handle;

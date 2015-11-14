@@ -3,7 +3,7 @@
 using namespace std;
 using namespace ToxVPN;
 
-Control::Control(NetworkInterface *interfarce): interfarce(interfarce) {
+Control::Control(NetworkInterface *iface): interfarce(iface) {
 	this->handle = STDIN_FILENO;
 	input = stdin;
 	output = stdout;
@@ -14,13 +14,13 @@ Control::Control(NetworkInterface *interfarce): interfarce(interfarce) {
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 #endif
 }
-Control::Control(NetworkInterface *interfarce, int socket): interfarce(interfarce) {
+Control::Control(NetworkInterface *iface, int socket): interfarce(iface) {
 	this->handle = socket;
 	input = fdopen(handle,"r");
 	output = fdopen(handle,"w");
 }
-int Control::handleReadData(Tox *tox) {
-	int size;
+ssize_t Control::handleReadData(Tox *tox) {
+	ssize_t size;
 #ifdef WIN32
 	std::string cmd;
 	getline(cin,cmd);
@@ -38,10 +38,10 @@ int Control::handleReadData(Tox *tox) {
 	TOX_ERR_FRIEND_QUERY fqerror;
 	if (buf == "list") {
 		fputs("listing friends\n",output);
-		int friendCount = tox_self_get_friend_list_size(tox);
+		size_t friendCount = tox_self_get_friend_list_size(tox);
 		uint32_t *friends = new uint32_t[friendCount];
 		tox_self_get_friend_list(tox,friends);
-		for (int i=0; i<friendCount; i++) {
+		for (unsigned int i=0; i<friendCount; i++) {
 			int friendid = friends[i];
 			TOX_CONNECTION conn_status = tox_friend_get_connection_status(tox,friendid,NULL);
 			string statusString;

@@ -85,7 +85,7 @@ void send_request() {
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
 
-  int res = sendmsg(netlink_socket, &msg, 0);
+  ssize_t res = sendmsg(netlink_socket, &msg, 0);
   if (res < 0) {
     printf("route error: %s\n",strerror(errno));
   }
