@@ -10,8 +10,13 @@ if(STATIC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTATIC")
 endif(STATIC)
 
-find_library(JSONCPP_LIBRARIES json REQUIRED /usr/lib)
+if(APPLE)
+  find_library(JSONCPP_LIBRARIES json REQUIRED)
+else(APPLE)
+  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED /usr/lib)
+endif(APPLE)
 find_path(JSONCPP_INCLUDE_DIRS json/value.h REQUIRED /usr/include/jsoncpp/)
+
 
 find_library(TOXCORE_LIBRARIES toxcore REQUIRED HINTS "${TOX_PREFIX}/lib")
 find_path(TOXCORE_INCLUDE_DIRS tox/tox.h REQUIRED HINTS "${TOX_PREFIX}/include")
