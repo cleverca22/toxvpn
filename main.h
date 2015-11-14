@@ -24,6 +24,8 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <tox/tox.h>
 
@@ -44,8 +46,6 @@
   #include <assert.h>
   #include <errno.h>
   #include <sys/un.h>
-  #include <sys/stat.h>
-  #include <sys/types.h>
   #include <sys/ioctl.h>
   #include <sys/select.h>
   #include <sys/socket.h>

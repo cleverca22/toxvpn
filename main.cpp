@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
   bool stdin_is_socket = false;
   string changeIp;
   string unixSocket;
-  int port = 33445;
+  uint16_t port = 33445;
   struct passwd *target_user = 0;
   while ((opt = getopt(argc,argv,"si:l:u:p:")) != -1) {
     switch (opt) {

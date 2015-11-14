@@ -2,7 +2,7 @@
 
 using namespace ToxVPN;
 
-SocketListener::SocketListener(NetworkInterface *interfarce): interfarce(interfarce) {
+SocketListener::SocketListener(NetworkInterface *iface): interfarce(iface) {
 	socket = dup(0);
 }
 #ifndef WIN32
