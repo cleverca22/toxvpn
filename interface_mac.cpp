@@ -7,28 +7,16 @@ static void *start_routine(void *x) {
   NetworkInterface *nic = (NetworkInterface*)x;
   return nic->loop();
 }
-NetworkInterface::NetworkInterface(): my_tox(0) {
-  fd = 0;
-  if ( (fd = open("/dev/net/tun", O_RDWR)) < 0) {
-    cerr << "unable to open /dev/net/tun" << endl;
+NetworkInterface::NetworkInterface(): my_tox(0), fd(0) {
+  if ( (fd = open("/dev/tun0", O_RDWR)) < 0) {
+    cerr << "unable to open /dev/tun0" << endl;
   }
 }
 void NetworkInterface::configure(string myip,Tox *my_tox) {
   int err;
   struct ifreq ifr;
   memset(&ifr, 0, sizeof(ifr));
-  ifr.ifr_flags = IFF_TUN;
-  strncpy(ifr.ifr_name, "tox_master%d", IFNAMSIZ);
-
-  if( (err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
-    if (errno == EPERM) {
-      cerr << "no permission to create tun device" << endl;
-      exit(-1);
-    }
-    cerr << strerror(errno) << err << endl;
-    close(fd);
-  }
-  // and set MTU params
+  strncpy(ifr.ifr_name,"tun0",IFNAMSIZ);
   int tun_sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (tun_sock < 0) {
     printf("error while setting MTU: %s",strerror(errno));
@@ -63,4 +51,5 @@ void NetworkInterface::configure(string myip,Tox *my_tox) {
   pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
   pthread_create(&reader,&attr,&start_routine,this);
   pthread_attr_destroy(&attr);
+
 }
