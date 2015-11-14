@@ -38,14 +38,8 @@
 #elif defined(WIN32)
 #  include <ws2tcpip.h>
 #  include <winsock2.h>
-#elif defined(__APPLE__)
-#  include <linux/if_tun.h>
-#  include <linux/netlink.h>
-#  include <linux/rtnetlink.h>
-#  include <sys/capability.h>
-#  include <sys/prctl.h>
-#  include <asm/types.h>
 #else
+// linux+mac includes
   #include <pwd.h>
   #include <assert.h>
   #include <errno.h>
@@ -59,9 +53,18 @@
   #include <net/if.h>
   #include <arpa/inet.h>
   #include <netinet/in.h>
-  #ifndef STATIC
-    #include <systemd/sd-daemon.h>
-  #endif
+// linux-only includes
+#  if defined(__APPLE__)
+#    include <linux/if_tun.h>
+#    include <linux/netlink.h>
+#    include <linux/rtnetlink.h>
+#    include <sys/capability.h>
+#    include <sys/prctl.h>
+#    include <asm/types.h>
+#    ifndef STATIC
+#      include <systemd/sd-daemon.h>
+#    endif
+#  endif
 #endif
 
 #define USE_SELECT
