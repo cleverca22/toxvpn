@@ -54,7 +54,7 @@
   #include <arpa/inet.h>
   #include <netinet/in.h>
 // linux-only includes
-#  if defined(__APPLE__)
+#  ifndef __APPLE__
 #    include <linux/if_tun.h>
 #    include <linux/netlink.h>
 #    include <linux/rtnetlink.h>
