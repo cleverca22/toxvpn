@@ -18,9 +18,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSYSTEMD")
 endif(SYSTEMD)
 
 if(APPLE)
-  find_library(JSONCPP_LIBRARIES json REQUIRED)
+  find_library(JSONCPP_LIBRARIES json REQUIRED ${JSONCPP_PREFIX})
 else(APPLE)
-  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED /usr/lib)
+  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED /usr/lib ${JSONCPP_PREFIX})
 endif(APPLE)
 find_path(JSONCPP_INCLUDE_DIRS json/value.h REQUIRED /usr/include/jsoncpp/)
 
