@@ -38,20 +38,24 @@ void NetworkInterface::handleReadData() {
     exit(-2);
     return;
   }
+#ifndef __APPLE__
   for (unsigned int i=0; i<sizeof(required); i++) {
     if (readbuffer[i] != required[i]) {
       puts("unsupported packet, dropping");
       dump_packet(readbuffer,size);
     }
   }
-  struct in_addr *dest = (struct in_addr*) (readbuffer + 20);
-  //printf("read %d bytes on master interface for %s\n",size,inet_ntoa(*dest));
-  //dump_packet(readbuffer,size);
+#endif
+
 #ifdef __APPLE__
 # define OFFSET 5
+  struct in_addr *dest = (struct in_addr*) (readbuffer + 16);
 #else
 # define OFFSET 1
+  struct in_addr *dest = (struct in_addr*) (readbuffer + 20);
 #endif
+  //printf("read %d bytes on master interface for %s\n",size,inet_ntoa(*dest));
+  //dump_packet(readbuffer,size);
   Route route;
   if (findRoute(&route, *dest)) {
     forwardPacket(route,readbuffer,size);
