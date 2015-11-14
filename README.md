@@ -1,6 +1,8 @@
 toxvpn
 ======
 
+[![Build Status](https://travis-ci.org/cleverca22/toxvpn.svg?branch=master)](https://travis-ci.org/cleverca22/toxvpn)
+
 **toxvpn** is a powerful tool that allows one to make tunneled point to point connections over [Tox](https://github.com/irungentoo/toxcore).
 
 Using Tox for transport allows fast, efficient and reliable enrypted tunneling.
