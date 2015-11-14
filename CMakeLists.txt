@@ -46,7 +46,7 @@ target_link_libraries(toxvpn pthread ${JSONCPP_LIBRARIES} ${TOXCORE_LIBRARIES})
 include_directories(${JSONCPP_INCLUDE_DIRS} ${TOXCORE_INCLUDE_DIRS})
 
 if(WIN32)
-  target_link_libraries(toxvpn ${TOXCORE_LIBRARIES} ws2_32 ${SODIUM_LIBRARIES} pthread iphlpapi)
+  target_link_libraries(toxvpn ${TOXCORE_LIBRARIES} ws2_32 ${SODIUM_LIBRARIES} pthread iphlpapi ${JSONCPP_LIBRARIES})
 elseif(CYGWIN)
   target_link_libraries(toxvpn ${TOXCORE_LIBRARIES} ws2_32 ${SODIUM_LIBRARIES} pthread iphlpapi)
 elseif(APPLE)
