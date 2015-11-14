@@ -29,10 +29,22 @@
 
 #include <json/json.h>
 
-
-#ifdef WIN32
-  #include <ws2tcpip.h>
-  #include <winsock2.h>
+#if defined(__CYGWIN__)
+#  include <arpa/inet.h>
+#  include <errno.h>
+#  include <sys/utsname.h>
+#  include <sys/socket.h>
+#  include <sys/un.h>
+#elif defined(WIN32)
+#  include <ws2tcpip.h>
+#  include <winsock2.h>
+#elif defined(__APPLE__)
+#  include <linux/if_tun.h>
+#  include <linux/netlink.h>
+#  include <linux/rtnetlink.h>
+#  include <sys/capability.h>
+#  include <sys/prctl.h>
+#  include <asm/types.h>
 #else
   #include <pwd.h>
   #include <assert.h>
@@ -47,20 +59,9 @@
   #include <net/if.h>
   #include <arpa/inet.h>
   #include <netinet/in.h>
-
-#  ifndef __APPLE__
-#    include <linux/if_tun.h>
-#    include <linux/netlink.h>
-#    include <linux/rtnetlink.h>
-#    include <sys/capability.h>
-#    include <sys/prctl.h>
-#    include <asm/types.h>
-#  endif
-
   #ifndef STATIC
     #include <systemd/sd-daemon.h>
   #endif
-
 #endif
 
 #define USE_SELECT

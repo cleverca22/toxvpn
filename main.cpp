@@ -83,10 +83,8 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
 }
 #endif
 static void notify(const char *message) {
-#ifndef WIN32
-#ifndef STATIC
+#if !defined(WIN32) && !defined(STATIC) && !defined(__CYGWIN__)
   sd_notify(0,message);
-#endif
 #endif
 }
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
@@ -211,7 +209,7 @@ int main(int argc, char **argv) {
       unixSocket = optarg;
       break;
     case 'u':
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
       puts("-u not currently supported on windows");
 #else
       target_user = getpwnam(optarg);
@@ -226,13 +224,13 @@ int main(int argc, char **argv) {
 
   puts("creating interface");
   mynic = new NetworkInterface();
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
   puts("no drop root support yet");
-  if (1) { // TODO, cd into %AppData%
+  if (0) { // TODO, cd into %AppData%
 #else
   if (target_user) {
     puts("setting uid");
-#ifndef __APPLE__
+#if !defined(WIN32) && !defined(__APPLE__) && !defined(__CYGWIN__)
     cap_value_t cap_values[] = { CAP_NET_ADMIN };
     cap_t caps;
 
@@ -246,7 +244,7 @@ int main(int argc, char **argv) {
     setgid(target_user->pw_gid);
     setuid(target_user->pw_uid);
 
-#ifndef __APPLE__
+#if !defined(WIN32) && !defined(__APPLE__) && !defined(__CYGWIN__)
     caps = cap_get_proc();
     cap_clear(caps);
     cap_set_flag(caps, CAP_PERMITTED, 1, cap_values, CAP_SET);
