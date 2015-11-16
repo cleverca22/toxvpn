@@ -4,7 +4,6 @@ project (vpn_test)
 if(WIN32)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN32 -std=c++11")
 else(WIN32)
-set(SYSROOT "/usr")
 endif(WIN32)
 
 if(STATIC)
