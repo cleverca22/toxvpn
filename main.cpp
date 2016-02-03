@@ -192,10 +192,13 @@ int main(int argc, char **argv) {
   Json::Value configRoot;
 
   int opt;
+  TOX_ERR_NEW new_error;
   bool stdin_is_socket = false;
   string changeIp;
   string unixSocket;
-  uint16_t port = 33445;
+  struct Tox_Options *opts = tox_options_new(NULL);
+  opts->start_port = 33445;
+  opts->end_port = 33445 + 100;
   struct passwd *target_user = 0;
   while ((opt = getopt(argc,argv,"si:l:u:p:")) != -1) {
     switch (opt) {
@@ -217,7 +220,7 @@ int main(int argc, char **argv) {
 #endif
       break;
     case 'p':
-      port = strtol(optarg,0,10);
+      opts->start_port = opts->end_port = strtol(optarg,0,10);
       break;
     }
   }
@@ -295,9 +298,6 @@ int main(int argc, char **argv) {
 
   Tox *my_tox;
   bool want_bootstrap = false;
-  struct Tox_Options *opts = tox_options_new(NULL);
-  opts->start_port = port;
-  opts->end_port = port;
   int oldstate = open("savedata",O_RDONLY);
   if (oldstate >= 0) {
     struct stat info;
@@ -312,10 +312,20 @@ int main(int argc, char **argv) {
   }
 
   want_bootstrap = true;
-  my_tox = tox_new(opts,NULL);
+  my_tox = tox_new(opts,&new_error);
   if (!my_tox) {
     opts->ipv6_enabled = false;
-    my_tox = tox_new(opts,NULL);
+    my_tox = tox_new(opts,&new_error);
+  }
+  switch (new_error) {
+  case TOX_ERR_NEW_OK:
+    break;
+  case TOX_ERR_NEW_PORT_ALLOC:
+    cerr << "unable to bind to a port between "<< opts->start_port << " and " << opts->end_port << endl;
+    return 1;
+  default:
+    cerr << "unhandled error code on tox_new: " << new_error << endl;
+    return 2;
   }
   assert(my_tox);
   if (opts->savedata_data) delete opts->savedata_data;
