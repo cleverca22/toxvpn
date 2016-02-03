@@ -200,11 +200,19 @@ int main(int argc, char **argv) {
   opts->start_port = 33445;
   opts->end_port = 33445 + 100;
   struct passwd *target_user = 0;
-  while ((opt = getopt(argc,argv,"si:l:u:p:")) != -1) {
+  while ((opt = getopt(argc,argv,"shi:l:u:p:")) != -1) {
     switch (opt) {
     case 's':
       stdin_is_socket = true;
       break;
+    case 'h':
+      cout << "-s\t\ttreat stdin as a unix socket server" << endl;
+      cout << "-i <IP>\t\tuse this IP on the vpn" << endl;
+      cout << "-l <path>\tlisten on a unix socket at this path" << endl;
+      cout << "-u <user>\tswitch to this user once root is no longer required" << endl;
+      cout << "-p <port>\tbind on a given port" << endl;
+      cout << "-h\t\tprint this help" << endl;
+      return 0;
     case 'i':
       changeIp = optarg;
       break;
