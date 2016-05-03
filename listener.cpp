@@ -40,7 +40,7 @@ void SocketListener::checkFds(fd_set *readset, Tox *my_tox) {
 	for (i=connections.begin(); i!=connections.end(); ++i) {
 		Control *c = *i;
 		if (FD_ISSET(c->handle,readset)) {
-			int x = c->handleReadData(my_tox);
+			ssize_t x = c->handleReadData(my_tox);
 			if (x == -1) {
 				connections.erase(i);
 				return; // FIXME
