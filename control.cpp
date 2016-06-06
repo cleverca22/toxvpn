@@ -87,6 +87,7 @@ ssize_t Control::handleReadData(Tox *tox) {
 		tox_friend_add(tox, (uint8_t*)peerbinary, (uint8_t*)msg,strlen(msg),&error);
 		switch (error) {
 		case TOX_ERR_FRIEND_ADD_OK:
+			saveState(tox);
 			break;
 		case TOX_ERR_FRIEND_ADD_ALREADY_SENT:
 			fputs("already sent\n",output);
