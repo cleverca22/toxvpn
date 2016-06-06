@@ -65,8 +65,8 @@ ssize_t Control::handleReadData(Tox *tox) {
 			uint8_t *status = new uint8_t[statusSize+1];
 			tox_friend_get_status_message(tox,friendid,status,NULL);
 			status[statusSize] = 0;
-			uint32_t hack = lastonline;
-			fprintf(output,"friend#%2d name:%15s status:%10s %30s lastonline:%d\n",friendid,friendname,statusString.c_str(),status,hack);
+			uint64_t hack = lastonline;
+			fprintf(output,"friend#%2d name:%15s status:%10s %30s lastonline:%ld\n",friendid,friendname,statusString.c_str(),status,hack);
 			delete friendname;
 			delete status;
 		}

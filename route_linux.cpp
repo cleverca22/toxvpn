@@ -19,7 +19,7 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char *gateway) {
   struct rtattr *rtap;
 
   //char *dest = "192.168.123.2";
-  int pn = 32;
+  unsigned char pn = 32;
 
   // initialize RTNETLINK request buffer
   bzero(&req,sizeof(req));
@@ -31,7 +31,7 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char *gateway) {
   // set destination ip addr and increment the netlink buf size
   rtap = (struct rtattr*) req.buf;
   rtap->rta_type = RTA_DST;
-  rtap->rta_len = sizeof(struct rtattr) + 4;
+  rtap->rta_len = (unsigned short)(sizeof(struct rtattr) + 4);
   memcpy( ((char *)rtap) + sizeof(struct rtattr), &peer, 4);
   //inet_pton(AF_INET,dest,((char *)rtap) + sizeof(struct rtattr));
   rtl += rtap->rta_len;
@@ -40,7 +40,7 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char *gateway) {
   // set gateway
   rtap = (struct rtattr*) ( ((char*)rtap) + rtap->rta_len);
   rtap->rta_type = RTA_GATEWAY;
-  rtap->rta_len = sizeof(struct rtattr) + 4;
+  rtap->rta_len = (unsigned short)(sizeof(struct rtattr) + 4);
   inet_pton(AF_INET,gateway,((char *)rtap) + sizeof(struct rtattr));
   rtl += rtap->rta_len;
 
@@ -48,7 +48,7 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char *gateway) {
   // set ifc index andincrement the netlink size
   rtap = (struct rtattr*) ( ((char*)rtap) + rtap->rta_len);
   rtap->rta_type = RTA_OIF;
-  rtap->rta_len = sizeof(struct rtattr) + 4;
+  rtap->rta_len = (unsigned short)(sizeof(struct rtattr) + 4);
   memcpy( ((char *)rtap) + sizeof(struct rtattr), &ifindex,4);
   rtl += rtap->rta_len;
 

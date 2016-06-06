@@ -29,7 +29,7 @@ void hex_string_to_bin(const char *hex_string, uint8_t *ret)
 void to_hex(char *a, const uint8_t *p, int size) {
   char buffer[3];
   for (int i=0; i<size; i++) {
-    int x = snprintf(buffer,3,"%02x",p[i]);
+    snprintf(buffer,3,"%02x",p[i]);
     a[i*2] = buffer[0];
     a[i*2+1] = buffer[1];
   }
@@ -41,7 +41,7 @@ void saveState(Tox *tox) {
   int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
   assert(fd);
   ssize_t written = write(fd,savedata,size);
-  assert(written == size);
+  assert(written > 0);
   close(fd);
 }
 void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data) {
@@ -82,11 +82,11 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
   output->S_un.S_addr = result;
 }
 #endif
-static void notify(const char *message) {
 #ifdef SYSTEMD
+static void notify(const char *message) {
   sd_notify(0,message);
-#endif
 }
+#endif
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
   printf("status msg #%d %s\n",friend_number,message);
   Json::Reader reader;
@@ -112,7 +112,7 @@ void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, 
   }
 }
 void handle_int(int something) {
-  puts("int!");
+  printf("int %d!", something);
   keep_running = false;
 }
 void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_data) {
@@ -141,7 +141,9 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
   }
   if (msg) {
     snprintf(buffer,120,"STATUS=%s, id=%s",msg,tox_printable_id);
+#ifdef SYSTEMD
     notify(buffer);
+#endif
   }
   saveState(tox);
   fflush(stdout);
@@ -228,7 +230,7 @@ int main(int argc, char **argv) {
 #endif
       break;
     case 'p':
-      opts->start_port = opts->end_port = strtol(optarg,0,10);
+      opts->start_port = opts->end_port = (uint16_t)strtol(optarg,0,10);
       break;
     }
   }
@@ -395,7 +397,9 @@ int main(int argc, char **argv) {
     control = new Control(mynic);
   }
   fflush(stdout);
+#ifdef SYSTEMD
   notify("READY=1");
+#endif
   while (keep_running) {
 #ifdef USE_SELECT
     FD_ZERO(&readset);
@@ -451,7 +455,9 @@ int main(int argc, char **argv) {
     }
 #endif
   }
+#ifdef SYSTEMD
   notify("STOPPING=1");
+#endif
   puts("shutting down");
   saveState(my_tox);
   tox_kill(my_tox);
