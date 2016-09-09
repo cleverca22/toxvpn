@@ -349,11 +349,12 @@ int main(int argc, char **argv) {
   printf("my id is %s and IP is %s\n",tox_printable_id,myip.c_str());
 
   /* Register the callbacks */
-  tox_callback_friend_request(my_tox, MyFriendRequestCallback, NULL);
-  tox_callback_friend_message(my_tox, MyFriendMessageCallback, NULL);
-  tox_callback_friend_status_message(my_tox, MyFriendStatusCallback, NULL);
-  tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate, NULL);
-  tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket, NULL);
+  tox_callback_friend_request(my_tox, MyFriendRequestCallback);
+  tox_callback_friend_message(my_tox, MyFriendMessageCallback);
+  tox_callback_friend_status_message(my_tox, MyFriendStatusCallback);
+  tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate, 0);
+  tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket, 0);
+  tox_callback_self_connection_status(my_tox, &connection_status);
 
   /* Define or load some user details for the sake of it */
 #ifndef WIN32
@@ -372,7 +373,6 @@ int main(int argc, char **argv) {
    * TOX_USER_STATUS_AWAY and TOX_USER_STATUS_BUSY */
   tox_self_set_status(my_tox, TOX_USER_STATUS_NONE);
 
-  tox_callback_self_connection_status(my_tox, &connection_status, 0);
 
   /* Bootstrap from the node defined above */
   if (want_bootstrap) do_bootstrap(my_tox);
@@ -441,7 +441,7 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    tox_iterate(my_tox); // will call the callback functions defined and registered
+    tox_iterate(my_tox, NULL); // will call the callback functions defined and registered
 
 #ifdef USE_EPOLL
     struct epoll_event events[10];

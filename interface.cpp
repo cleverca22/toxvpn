@@ -127,11 +127,13 @@ void NetworkInterface::processPacket(const uint8_t *data, size_t size, int frien
     printf(" %02x",data[i]);
   }
   printf("\n");*/
+  ssize_t ret = 0;
   if (fd) {
 #ifdef __APPLE__
-    write(fd,data+4,size);
+    ret = write(fd,data+4,size);
 #else
-    write(fd,data,size);
+    ret = write(fd,data,size);
 #endif
   }
+  if (ret != size) cerr << "partial packet write to tun\n";
 }
