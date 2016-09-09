@@ -22,7 +22,7 @@ before_script:
   #creating libraries links and updating cache
   #- sudo ldconfig > /dev/null
   # and toxcore
-  - git clone git://github.com/irungentoo/toxcore.git > /dev/null
+  - git clone git://github.com/TokTok/toxcore.git > /dev/null
   - cd toxcore
   - autoreconf -i
   - CFLAGS="-Ofast -Wall -Wextra" ./configure --enable-daemon --enable-ntox --with-libsodium-headers=${HOME}/libsodium/include/ --with-libsodium-libs=${HOME}/libsodium/lib/ --prefix=${HOME}/toxcore/
