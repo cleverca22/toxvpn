@@ -1,8 +1,8 @@
 #include "main.h"
-
-#define BOOTSTRAP_ADDRESS "23.226.230.47"
-#define BOOTSTRAP_PORT 33445
-#define BOOTSTRAP_KEY "A09162D68618E742FFBCA1C2C70385E6679604B2D80EA6E84AD0996A1AC8A074"
+#include "control.h"
+#include "listener.h"
+#include "interface.h"
+#include "route.h"
 
 using namespace std;
 using namespace ToxVPN;
@@ -26,6 +26,7 @@ void hex_string_to_bin(const char *hex_string, uint8_t *ret)
         sscanf(pos, "%2hhx", &ret[i]);
 
 }
+
 void to_hex(char *a, const uint8_t *p, int size) {
   char buffer[3];
   for (int i=0; i<size; i++) {
@@ -34,18 +35,29 @@ void to_hex(char *a, const uint8_t *p, int size) {
     a[i*2+1] = buffer[1];
   }
 }
-void saveState(Tox *tox) {
-  size_t size = tox_get_savedata_size(tox);
-  uint8_t *savedata = new uint8_t[size];
-  tox_get_savedata(tox,savedata);
-  int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
-  assert(fd);
-  ssize_t written = write(fd,savedata,size);
-  assert(written > 0);
-  close(fd);
+namespace ToxVPN {
+  void saveState(Tox *tox) {
+    size_t size = tox_get_savedata_size(tox);
+    uint8_t *savedata = new uint8_t[size];
+    tox_get_savedata(tox,savedata);
+    int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
+    assert(fd);
+    ssize_t written = write(fd,savedata,size);
+    assert(written > 0);
+    close(fd);
+  }
+  void do_bootstrap(Tox *tox, std::vector<bootstrap_node> nodes) {
+    size_t i = rand() % nodes.size();
+    printf("%lu / %lu\n", i, nodes.size());
+    uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
+    hex_string_to_bin(nodes[i].pubkey.c_str(), bootstrap_pub_key);
+    tox_bootstrap(tox, nodes[i].ipv4.c_str(), nodes[i].port, bootstrap_pub_key, NULL);
+  }
 }
-void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data) {
+
+void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *) {
   char tox_printable_id[TOX_PUBLIC_KEY_SIZE * 2 + 1];
+  string msg((char*)message, length);
 
   memset(tox_printable_id, 0, sizeof(tox_printable_id));
   to_hex(tox_printable_id, public_key,TOX_PUBLIC_KEY_SIZE);
@@ -53,7 +65,8 @@ void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t 
   fflush(stdout);
   saveState(tox);
 }
-void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status, void *user_data) {
+
+void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION connection_status, void *) {
   size_t namesize = tox_friend_get_name_size(tox,friend_number,0);
   uint8_t *friendname = new uint8_t[namesize+1];
   tox_friend_get_name(tox,friend_number,friendname,NULL);
@@ -73,21 +86,26 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
   delete friendname;
   fflush(stdout);
 }
-void MyFriendMessageCallback(Tox *tox, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *user_data) {
-  printf("message %d %s\n",friend_number,message);
+
+void MyFriendMessageCallback(Tox *, uint32_t friend_number, TOX_MESSAGE_TYPE type, const uint8_t *message, size_t length, void *) {
+  string msg((char*)message, length);
+  cout << "message" << friend_number << msg << type << endl;
 }
+
 #ifdef WIN32
 void inet_pton(int type, const char *input, struct in_addr *output) {
   unsigned long result = inet_addr(input);
   output->S_un.S_addr = result;
 }
 #endif
+
 #ifdef SYSTEMD
 static void notify(const char *message) {
   sd_notify(0,message);
 }
 #endif
-void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *user_data) {
+
+void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *) {
   printf("status msg #%d %s\n",friend_number,message);
   Json::Reader reader;
   Json::Value root;
@@ -106,16 +124,19 @@ void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *mes
   saveState(tox);
   fflush(stdout);
 }
-void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data) {
+
+void MyFriendLossyPacket(Tox *, uint32_t friend_number, const uint8_t *data, size_t length, void *) {
   if (data[0] == 200) {
     mynic->processPacket(data+1,length-1,friend_number);
   }
 }
+
 void handle_int(int something) {
   printf("int %d!", something);
   keep_running = false;
 }
-void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_data) {
+
+void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *) {
   uint8_t toxid[TOX_ADDRESS_SIZE];
   tox_self_get_address(tox,toxid);
   char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
@@ -148,6 +169,7 @@ void connection_status(Tox *tox, TOX_CONNECTION connection_status, void *user_da
   saveState(tox);
   fflush(stdout);
 }
+
 std::string readFile(std::string path) {
   std::string output;
   FILE *handle = fopen(path.c_str(),"r");
@@ -160,6 +182,7 @@ std::string readFile(std::string path) {
   fclose(handle);
   return output;
 }
+
 void saveConfig(Json::Value root) {
   Json::FastWriter fw;
   std::string json = fw.write(root);
@@ -172,16 +195,31 @@ void saveConfig(Json::Value root) {
   fwrite(data,json.length(),1,handle);
   fclose(handle);
 }
-void do_bootstrap(Tox *tox) {
-  uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
-  hex_string_to_bin(BOOTSTRAP_KEY, bootstrap_pub_key);
-  tox_bootstrap(tox, BOOTSTRAP_ADDRESS, BOOTSTRAP_PORT, bootstrap_pub_key, NULL);
-}
+
 int main(int argc, char **argv) {
 #ifdef USE_EPOLL
   epoll_handle = epoll_create(20);
   assert(epoll_handle >= 0);
 #endif
+
+  string bootstrap_json = readFile(BOOTSTRAP_FILE);
+  Json::Value bootstrapRoot;
+  Json::Reader reader;
+  std::vector<bootstrap_node> bootstrap_nodes;
+  if (reader.parse(bootstrap_json, bootstrapRoot)) {
+    Json::Value nodes = bootstrapRoot["nodes"];
+    assert(nodes.type() == Json::arrayValue);
+    for (size_t i=0; i<nodes.size(); i++) {
+      Json::Value e = nodes[(int)i];
+      //printf("node %d\n",i);
+      string ipv4 = e["ipv4"].asString();
+      uint16_t port = e["port"].asInt();
+      string pubkey = e["public_key"].asString();
+      //printf("%s %d %s\n", ipv4.c_str(), port, pubkey.c_str());
+      bootstrap_nodes.push_back(bootstrap_node(ipv4, port, pubkey));
+    }
+  }
+
   route_init();
 
 #ifndef WIN32
@@ -254,8 +292,14 @@ int main(int argc, char **argv) {
     cap_free(caps);
 #endif
 
-    setgid(target_user->pw_gid);
-    setuid(target_user->pw_uid);
+    if (setgid(target_user->pw_gid)) {
+      cerr << "unable to setgid()" << endl;
+      return -2;
+    }
+    if (setuid(target_user->pw_uid)) {
+      cerr << "unable to setuid()" << endl;
+      return -2;
+    }
 
 #if !defined(WIN32) && !defined(__APPLE__) && !defined(__CYGWIN__)
     caps = cap_get_proc();
@@ -281,7 +325,6 @@ int main(int argc, char **argv) {
   }
 
   std::string config = readFile("config.json");
-  Json::Reader reader;
   if (reader.parse(config, configRoot)) {
     if (changeIp.length() > 0) {
       configRoot["myip"] = changeIp;
@@ -352,8 +395,8 @@ int main(int argc, char **argv) {
   tox_callback_friend_request(my_tox, MyFriendRequestCallback);
   tox_callback_friend_message(my_tox, MyFriendMessageCallback);
   tox_callback_friend_status_message(my_tox, MyFriendStatusCallback);
-  tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate, 0);
-  tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket, 0);
+  tox_callback_friend_connection_status(my_tox, FriendConnectionUpdate);
+  tox_callback_friend_lossy_packet(my_tox, MyFriendLossyPacket);
   tox_callback_self_connection_status(my_tox, &connection_status);
 
   /* Define or load some user details for the sake of it */
@@ -375,7 +418,7 @@ int main(int argc, char **argv) {
 
 
   /* Bootstrap from the node defined above */
-  if (want_bootstrap) do_bootstrap(my_tox);
+  if (want_bootstrap) do_bootstrap(my_tox, bootstrap_nodes);
 
 
 #ifdef USE_SELECT
@@ -426,9 +469,9 @@ int main(int argc, char **argv) {
 #endif
     r = select(maxfd+1, &readset, NULL, NULL, &timeout);
     if (r > 0) {
-      if (control && FD_ISSET(control->handle,&readset)) control->handleReadData(my_tox);
+      if (control && FD_ISSET(control->handle,&readset)) control->handleReadData(my_tox, bootstrap_nodes);
       if (listener && FD_ISSET(listener->socket,&readset)) listener->doAccept();
-      if (listener) listener->checkFds(&readset,my_tox);
+      if (listener) listener->checkFds(&readset,my_tox, bootstrap_nodes);
     } else if (r == 0) {
     } else {
       if (r != -2) {

@@ -1,4 +1,5 @@
 #include "main.h"
+#include "control.h"
 
 using namespace std;
 using namespace ToxVPN;
@@ -14,12 +15,14 @@ Control::Control(NetworkInterface *iface): interfarce(iface) {
 	if (epoll_ctl(epoll_handle, EPOLL_CTL_ADD, this->handle, &this->event) != 0) puts(strerror(errno));
 #endif
 }
+
 Control::Control(NetworkInterface *iface, int socket): interfarce(iface) {
 	this->handle = socket;
 	input = fdopen(handle,"r");
 	output = fdopen(handle,"w");
 }
-ssize_t Control::handleReadData(Tox *tox) {
+
+ssize_t Control::handleReadData(Tox *tox, std::vector<bootstrap_node> nodes) {
 	ssize_t size;
 #ifdef WIN32
 	std::string cmd;
@@ -132,7 +135,7 @@ ssize_t Control::handleReadData(Tox *tox) {
 		fputs("status            - shows your own id&ip\n",output);
 		fputs("bootstrap         - attempt to reconnect\n",output);
 	} else if (buf == "bootstrap") {
-		do_bootstrap(tox);
+		do_bootstrap(tox, nodes);
 	} else if (buf == "route") {
 		ss >> buf;
 		if (buf == "show") {
@@ -146,6 +149,7 @@ ssize_t Control::handleReadData(Tox *tox) {
 	fflush(output);
 	return size;
 }
+
 int Control::populate_fdset(fd_set *readset) {
 	FD_SET(this->handle,readset);
 	return this->handle;

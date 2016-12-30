@@ -1,3 +1,4 @@
+#pragma once
 /*
  * This program is libre software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,17 +76,21 @@
 
 #include "epoll_target.h"
 
-#include "interface.h"
-#include "control.h"
-#include "route.h"
-#include "listener.h"
+namespace ToxVPN {
+  class bootstrap_node {
+  public:
+    bootstrap_node(std::string ipv4_in, uint16_t port_in, std::string pubkey_in) : ipv4(ipv4_in), pubkey(pubkey_in), port(port_in) {
+    }
+    std::string ipv4, pubkey;
+    uint16_t port;
+  };
 
-
+  void saveState(Tox *tox);
+  void do_bootstrap(Tox *tox, std::vector<ToxVPN::bootstrap_node> nodes);
+}
 
 void to_hex(char *a, const uint8_t *p, int size);
 void hex_string_to_bin(const char *hex_string, uint8_t *ret);
-void saveState(Tox *tox);
-void do_bootstrap(Tox *tox);
 #ifdef WIN32
 void inet_pton(int type, const char *input, struct in_addr *output);
 #endif

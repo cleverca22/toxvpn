@@ -1,4 +1,13 @@
-#include "main.h"
+#include <errno.h>
+#include <stdio.h>
+#include <string>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <iostream>
+
+#include "interface.h"
+#include "route.h"
 
 using namespace std;
 using namespace ToxVPN;

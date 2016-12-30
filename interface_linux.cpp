@@ -1,4 +1,5 @@
 #include "main.h"
+#include "interface.h"
 
 using namespace std;
 using namespace ToxVPN;
@@ -7,12 +8,14 @@ static void *start_routine(void *x) {
   NetworkInterface *nic = (NetworkInterface*)x;
   return nic->loop();
 }
+
 NetworkInterface::NetworkInterface(): my_tox(0) {
   fd = 0;
   if ( (fd = open("/dev/net/tun", O_RDWR)) < 0) {
     cerr << "unable to open /dev/net/tun" << endl;
   }
 }
+
 void NetworkInterface::configure(string ip_in,Tox *tox_in) {
   int err;
   struct ifreq ifr;

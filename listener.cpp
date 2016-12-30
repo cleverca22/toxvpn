@@ -1,10 +1,12 @@
 #include "main.h"
+#include "listener.h"
 
 using namespace ToxVPN;
 
 SocketListener::SocketListener(NetworkInterface *iface): interfarce(iface) {
 	socket = dup(0);
 }
+
 #ifndef WIN32
 SocketListener::SocketListener(NetworkInterface *iface, std::string unixSocket): interfarce(iface) {
 	socket = ::socket(AF_UNIX, SOCK_STREAM, 0);
@@ -20,6 +22,7 @@ SocketListener::SocketListener(NetworkInterface *iface, std::string unixSocket):
 	listen(socket,5);
 }
 #endif
+
 int SocketListener::populate_fdset(fd_set *readset) {
 	std::list<Control*>::const_iterator i;
 	int max = socket;
@@ -30,17 +33,19 @@ int SocketListener::populate_fdset(fd_set *readset) {
 	}
 	return max;
 }
+
 void SocketListener::doAccept() {
 	int newsocket = accept(socket,0,0);
 	Control *c = new Control(interfarce,newsocket);
 	connections.push_back(c);
 }
-void SocketListener::checkFds(fd_set *readset, Tox *my_tox) {
+
+void SocketListener::checkFds(fd_set *readset, Tox *my_tox, std::vector<bootstrap_node> nodes) {
 	std::list<Control*>::iterator i;
 	for (i=connections.begin(); i!=connections.end(); ++i) {
 		Control *c = *i;
 		if (FD_ISSET(c->handle,readset)) {
-			ssize_t x = c->handleReadData(my_tox);
+			ssize_t x = c->handleReadData(my_tox, nodes);
 			if (x == -1) {
 				connections.erase(i);
 				return; // FIXME

@@ -1,10 +1,15 @@
+#pragma once
+
+#include "main.h"
+#include "interface.h"
+
 namespace ToxVPN {
 
 class Control {
 public:
 	Control(NetworkInterface *interfarce);
 	Control(NetworkInterface *interfarce, int socket);
-	ssize_t handleReadData(Tox *tox);
+	ssize_t handleReadData(Tox *tox, std::vector<bootstrap_node> nodes);
 	int populate_fdset(fd_set *readset);
 
 	int handle;

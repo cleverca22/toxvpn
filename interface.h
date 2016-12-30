@@ -9,6 +9,12 @@
  *
  * See the COPYING file for more details.
  */
+#pragma once
+
+#include <list>
+#include <tox/tox.h>
+#include <arpa/inet.h>
+
 namespace ToxVPN {
 
 class Route {
