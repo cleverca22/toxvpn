@@ -22,7 +22,7 @@ Control::Control(NetworkInterface *iface, int socket): interfarce(iface) {
 	output = fdopen(handle,"w");
 }
 
-ssize_t Control::handleReadData(Tox *tox, std::vector<bootstrap_node> nodes) {
+ssize_t Control::handleReadData(Tox *tox, ToxVPNCore *toxvpn) {
 	ssize_t size;
 #ifdef WIN32
 	std::string cmd;
@@ -135,7 +135,7 @@ ssize_t Control::handleReadData(Tox *tox, std::vector<bootstrap_node> nodes) {
 		fputs("status            - shows your own id&ip\n",output);
 		fputs("bootstrap         - attempt to reconnect\n",output);
 	} else if (buf == "bootstrap") {
-		do_bootstrap(tox, nodes);
+		do_bootstrap(tox, toxvpn);
 	} else if (buf == "route") {
 		ss >> buf;
 		if (buf == "show") {

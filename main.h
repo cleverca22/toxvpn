@@ -77,6 +77,8 @@
 #include "epoll_target.h"
 
 namespace ToxVPN {
+  class SocketListener;
+
   class bootstrap_node {
   public:
     bootstrap_node(std::string ipv4_in, uint16_t port_in, std::string pubkey_in) : ipv4(ipv4_in), pubkey(pubkey_in), port(port_in) {
@@ -85,8 +87,16 @@ namespace ToxVPN {
     uint16_t port;
   };
 
+  class ToxVPNCore {
+  public:
+    SocketListener *listener;
+    std::vector<std::string> auto_friends;
+    std::vector<bootstrap_node> nodes;
+    struct timespec last_boostrap;
+  };
+
   void saveState(Tox *tox);
-  void do_bootstrap(Tox *tox, std::vector<ToxVPN::bootstrap_node> nodes);
+  void do_bootstrap(Tox *tox, ToxVPNCore *toxvpn);
 }
 
 void to_hex(char *a, const uint8_t *p, int size);
