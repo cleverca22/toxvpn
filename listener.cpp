@@ -28,16 +28,14 @@ SocketListener::SocketListener(NetworkInterface *iface, std::string unixSocket, 
 #endif
 
 int SocketListener::populate_fdset(fd_set *readset) {
-    std::list<Control*>::const_iterator i;
-    int max = socket;
-    assert(socket > 0);
-    assert(socket < 200);
-    FD_SET(socket, readset);
-    for (i=connections.begin(); i!=connections.end(); ++i) {
-        Control *c = *i;
-        max = std::max(max,c->populate_fdset(readset));
-    }
-    return max;
+  std::list<Control*>::const_iterator i;
+  int max = socket;
+  FD_SET(socket, readset);
+  for (i=connections.begin(); i!=connections.end(); ++i) {
+    Control *c = *i;
+    max = std::max(max,c->populate_fdset(readset));
+  }
+  return max;
 }
 
 void SocketListener::doAccept() {

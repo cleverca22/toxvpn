@@ -89,6 +89,7 @@ namespace ToxVPN {
 
   class ToxVPNCore {
   public:
+    ToxVPNCore();
     SocketListener *listener;
     std::vector<std::string> auto_friends;
     std::vector<bootstrap_node> nodes;

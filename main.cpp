@@ -47,6 +47,7 @@ namespace ToxVPN {
     assert(written > 0);
     close(fd);
   }
+
   void do_bootstrap(Tox *tox, ToxVPNCore *toxvpn) {
     assert(toxvpn->nodes.size() > 0);
     size_t i = rand() % toxvpn->nodes.size();
@@ -57,6 +58,9 @@ namespace ToxVPN {
     clock_gettime(CLOCK_MONOTONIC, &toxvpn->last_boostrap);
     fflush(stdout);
   }
+
+  ToxVPNCore::ToxVPNCore() : listener(0) {
+  };
 }
 
 void MyFriendRequestCallback(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data) {
@@ -114,9 +118,9 @@ void FriendConnectionUpdate(Tox *tox, uint32_t friend_number, TOX_CONNECTION con
     snprintf(formated, 511, "friend %d(%s) connected via udp",friend_number,friendname);
     break;
   }
-  delete friendname;
+  delete [] friendname;
 
-  toxvpn->listener->broadcast(formated);
+  if (toxvpn->listener) toxvpn->listener->broadcast(formated);
 
   printf("fixed: %s\n", formated);
   fflush(stdout);
@@ -450,7 +454,7 @@ int main(int argc, char **argv) {
     return 2;
   }
   assert(my_tox);
-  if (opts->savedata_data) delete opts->savedata_data;
+  if (opts->savedata_data) delete [] opts->savedata_data;
   tox_options_free(opts); opts = 0;
 
   uint8_t toxid[TOX_ADDRESS_SIZE];
