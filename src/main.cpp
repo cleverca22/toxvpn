@@ -50,6 +50,7 @@ namespace ToxVPN {
     ssize_t written = write(fd,savedata,size);
     assert(written > 0); // FIXME: check even if NDEBUG is disabled
     close(fd);
+    delete [] savedata;
   }
 
   void do_bootstrap(Tox *tox, ToxVPNCore *toxvpn) {
@@ -59,6 +60,7 @@ namespace ToxVPN {
     uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
     hex_string_to_bin(toxvpn->nodes[i].pubkey.c_str(), bootstrap_pub_key);
     tox_bootstrap(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port, bootstrap_pub_key, NULL);
+    delete [] bootstrap_pub_key;
     toxvpn->last_boostrap = steady_clock::now();
     fflush(stdout);
   }
@@ -590,5 +592,6 @@ int main(int argc, char **argv) {
   saveState(my_tox);
   tox_kill(my_tox);
   zmq_ctx_term(zmq);
+  if (control) delete control;
   return 0;
 }
