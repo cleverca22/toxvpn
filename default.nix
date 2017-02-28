@@ -17,6 +17,7 @@ with rec {
 
     dontStrip = enableDebugging;
   });
+  systemd' = if stdenv.system == "x86_64-darwin" then null else systemd;
 };
 
 stdenv.mkDerivation {
@@ -30,16 +31,16 @@ stdenv.mkDerivation {
 
   buildInputs = lib.concatLists [
     [ cmake libtoxcoreLocked nlohmann_json libsodium libcap zeromq ]
-    (lib.optional (systemd != null) systemd)
+    (lib.optional (systemd' != null) systemd)
   ];
 
-  cmakeFlags = (lib.optional (systemd != null) [ "-DSYSTEMD=1" ]);
+  cmakeFlags = (lib.optional (systemd' != null) [ "-DSYSTEMD=1" ]);
 
   meta = with stdenv.lib; {
     description = "A tool for making tunneled connections over Tox";
     homepage    = "https://github.com/cleverca22/toxvpn";
     license     = licenses.gpl3;
     maintainers = with maintainers; [ cleverca22 obadz ];
-    platforms   = platforms.linux;
+    platforms   = platforms.linux ++ platforms.darwin;
   };
 }
