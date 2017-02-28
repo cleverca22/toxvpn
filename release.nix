@@ -1,10 +1,10 @@
-{ stdenv, clangStdenv, lib, fetchFromGitHub               # Nix-related
-, cmake                                                   # Build tools
-, libsodium, systemd, jsoncpp, libtoxcore, libcap, zeromq # Libraries
-, enableDebugging ? false
+{ stdenv, clangStdenv, lib, fetchFromGitHub
+, cmake, libsodium, systemd, jsoncpp, libtoxcore, libcap, zeromq
 }:
 
-with {
+with rec {
+  enableDebugging = true;
+
   libtoxcoreLocked = stdenv.lib.overrideDerivation libtoxcore (old: {
     name = "libtoxcore-20160907";
 
@@ -33,18 +33,10 @@ stdenv.mkDerivation {
     (lib.optional (systemd != null) systemd)
   ];
 
-  cmakeFlags = lib.concatLists [
-    (lib.optional (systemd != null) [ "-DSYSTEMD=1" ])
-    [ "-DBOOTSTRAP_PATH=$\{out}/share/toxvpn/bootstrap.json" ]
-  ];
-
-  postInstall = ''
-      mkdir -pv ''${out}/share/toxvpn
-      cp -vi ../bootstrap.json ''${out}/share/toxvpn/bootstrap.json
-  '';
+  cmakeFlags = (lib.optional (systemd != null) [ "-DSYSTEMD=1" ]);
 
   meta = with stdenv.lib; {
-    description = "A powerful tool that allows one to make tunneled point to point connections over Tox";
+    description = "A tool for making tunneled connections over Tox";
     homepage    = "https://github.com/cleverca22/toxvpn";
     license     = licenses.gpl3;
     maintainers = with maintainers; [ cleverca22 obadz ];
