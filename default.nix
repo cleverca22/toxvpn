@@ -17,7 +17,10 @@ with rec {
 
     dontStrip = enableDebugging;
   });
-  systemd' = if stdenv.system == "x86_64-darwin" then null else systemd;
+
+  systemdOrNull = if stdenv.system == "x86_64-darwin" then null else systemd;
+
+  if_systemd = lib.optional (systemdOrNull != null);
 };
 
 stdenv.mkDerivation {
@@ -31,10 +34,10 @@ stdenv.mkDerivation {
 
   buildInputs = lib.concatLists [
     [ cmake libtoxcoreLocked nlohmann_json libsodium libcap zeromq ]
-    (lib.optional (systemd' != null) systemd)
+    (if_systemd systemd)
   ];
 
-  cmakeFlags = (lib.optional (systemd' != null) [ "-DSYSTEMD=1" ]);
+  cmakeFlags = if_systemd [ "-DSYSTEMD=1" ];
 
   meta = with stdenv.lib; {
     description = "A tool for making tunneled connections over Tox";
