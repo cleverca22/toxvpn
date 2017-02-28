@@ -48,6 +48,7 @@ namespace ToxVPN {
     close(fd);
   }
   void do_bootstrap(Tox *tox, ToxVPNCore *toxvpn) {
+    assert(toxvpn->nodes.size() > 0);
     size_t i = rand() % toxvpn->nodes.size();
     printf("%lu / %lu\n", i, toxvpn->nodes.size());
     uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
@@ -264,6 +265,7 @@ int main(int argc, char **argv) {
   void *zmq = zmq_ctx_new();
   ToxVPNCore toxvpn;
 
+  assert(strlen(BOOTSTRAP_FILE) > 5);
   string bootstrap_json = readFile(BOOTSTRAP_FILE);
   Json::Value bootstrapRoot;
   Json::Reader reader;
