@@ -72,9 +72,9 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
                     "friend#%2d name:%15s status:%10s %30s lastonline:%ld\n",
                     friendid, friendname, statusString.c_str(), status, hack);
             delete[] friendname;
-            delete status;
+            delete[] status;
         }
-        delete friends;
+        delete[] friends;
     } else if(buf == "remove") {
         int friendid;
         ss >> friendid;
