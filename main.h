@@ -93,7 +93,7 @@ namespace ToxVPN {
     SocketListener *listener;
     std::vector<std::string> auto_friends;
     std::vector<bootstrap_node> nodes;
-    struct timespec last_boostrap;
+    std::chrono::steady_clock::time_point last_boostrap;
   };
 
   void saveState(Tox *tox);

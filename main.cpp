@@ -4,9 +4,11 @@
 #include "interface.h"
 #include "route.h"
 #include <zmq.h>
+#include <chrono>
 
 using namespace std;
 using namespace ToxVPN;
+using namespace std::chrono;
 
 NetworkInterface *mynic;
 volatile bool keep_running = true;
@@ -55,7 +57,7 @@ namespace ToxVPN {
     uint8_t *bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
     hex_string_to_bin(toxvpn->nodes[i].pubkey.c_str(), bootstrap_pub_key);
     tox_bootstrap(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port, bootstrap_pub_key, NULL);
-    clock_gettime(CLOCK_MONOTONIC, &toxvpn->last_boostrap);
+    toxvpn->last_boostrap = steady_clock::now();
     fflush(stdout);
   }
 
@@ -569,9 +571,9 @@ int main(int argc, char **argv) {
 #endif
     TOX_CONNECTION conn_status = tox_self_get_connection_status(my_tox);
     if (conn_status == TOX_CONNECTION_NONE) {
-      struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      if ((now.tv_sec - toxvpn.last_boostrap.tv_sec) > 10) {
+      steady_clock::time_point now = steady_clock::now();
+      duration<double> time_span = duration_cast<duration<double>>(now - toxvpn.last_boostrap);
+      if (time_span.count() > 10) {
         do_bootstrap(my_tox, &toxvpn);
       }
     }
