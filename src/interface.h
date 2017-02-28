@@ -19,32 +19,32 @@ namespace ToxVPN {
 
 class Route {
 public:
-  struct in_addr network;
-  struct in_addr mask;
-  int maskbits;
-  int friend_number;
+    struct in_addr network;
+    struct in_addr mask;
+    int maskbits;
+    int friend_number;
 };
 class NetworkInterface {
 public:
-  NetworkInterface();
-  ~NetworkInterface();
-  void *loop();
-  void setPeerIp(struct in_addr peer, int friend_number);
-  void removePeer(int friend_number);
-  void addPeerRoute(struct in_addr peer, int friend_number);
-  void processPacket(const uint8_t *data, size_t bytes, int friend_number);
-  void configure(std::string myip,Tox *my_tox);
+    NetworkInterface();
+    ~NetworkInterface();
+    void* loop();
+    void setPeerIp(struct in_addr peer, int friend_number);
+    void removePeer(int friend_number);
+    void addPeerRoute(struct in_addr peer, int friend_number);
+    void processPacket(const uint8_t* data, size_t bytes, int friend_number);
+    void configure(std::string myip, Tox* my_tox);
 
-  std::list<Route> routes;
+    std::list<Route> routes;
+
 private:
-  void handleReadData();
-  bool findRoute(Route *route, struct in_addr peer);
-  void forwardPacket(Route route, uint8_t *buffer, ssize_t bytes);
+    void handleReadData();
+    bool findRoute(Route* route, struct in_addr peer);
+    void forwardPacket(Route route, uint8_t* buffer, ssize_t bytes);
 
-  pthread_t reader;
-  int fd;
-  Tox *my_tox;
-  int interfaceIndex;
+    pthread_t reader;
+    int fd;
+    Tox* my_tox;
+    int interfaceIndex;
 };
-
 };
