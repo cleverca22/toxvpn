@@ -30,7 +30,7 @@
 
 #include <tox/tox.h>
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #if defined(__CYGWIN__)
 #  include <arpa/inet.h>
@@ -67,6 +67,8 @@
 #    endif
 #  endif
 #endif
+
+#include <chrono>
 
 #define USE_SELECT
 

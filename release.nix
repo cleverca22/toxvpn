@@ -1,5 +1,5 @@
 { stdenv, clangStdenv, lib, fetchFromGitHub
-, cmake, libsodium, systemd, jsoncpp, libtoxcore, libcap, zeromq
+, cmake, libsodium, systemd, nlohmann_json, libtoxcore, libcap, zeromq
 }:
 
 with rec {
@@ -29,7 +29,7 @@ stdenv.mkDerivation {
   NIX_CFLAGS_COMPILE = if enableDebugging then [ "-ggdb -Og" ] else [];
 
   buildInputs = lib.concatLists [
-    [ cmake libtoxcoreLocked jsoncpp libsodium libcap zeromq ]
+    [ cmake libtoxcoreLocked nlohmann_json libsodium libcap zeromq ]
     (lib.optional (systemd != null) systemd)
   ];
 

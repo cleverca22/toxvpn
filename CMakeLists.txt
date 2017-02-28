@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required(VERSION 2.6)
 project(toxvpn)
 
 set(BOOTSTRAP_PATH "${CMAKE_INSTALL_PREFIX}/share/toxvpn/bootstrap.json")
@@ -14,19 +14,14 @@ if(STATIC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSTATIC")
 set(LIBMODE STATIC)
 endif(STATIC)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Wextra -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Wextra -std=c++14")
 
 if(SYSTEMD)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSYSTEMD")
 set(SYSTEMD_LIBRARIES "systemd")
 endif(SYSTEMD)
 
-if(APPLE)
-  find_library(JSONCPP_LIBRARIES json REQUIRED ${JSONCPP_PREFIX})
-else(APPLE)
-  find_library(JSONCPP_LIBRARIES jsoncpp REQUIRED HINTS ${JSONCPP_PREFIX} PATHS /usr/lib)
-endif(APPLE)
-find_path(JSONCPP_INCLUDE_DIRS json/value.h REQUIRED /usr/include/jsoncpp/ /usr/include/)
+find_package(nlohmann_json)
 
 find_library(TOXCORE_LIBRARIES toxcore REQUIRED HINTS "${TOX_PREFIX}/lib")
 find_path(TOXCORE_INCLUDE_DIRS tox/tox.h REQUIRED HINTS "${TOX_PREFIX}/include")

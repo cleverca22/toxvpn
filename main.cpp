@@ -10,6 +10,8 @@ using namespace std;
 using namespace ToxVPN;
 using namespace std::chrono;
 
+using json = nlohmann::json;
+
 NetworkInterface *mynic;
 volatile bool keep_running = true;
 std::string myip;
@@ -46,7 +48,7 @@ namespace ToxVPN {
     int fd = open("savedata",O_TRUNC|O_WRONLY|O_CREAT,0644);
     assert(fd);
     ssize_t written = write(fd,savedata,size);
-    assert(written > 0);
+    assert(written > 0); // FIXME: check even if NDEBUG is disabled
     close(fd);
   }
 
@@ -142,18 +144,19 @@ void inet_pton(int type, const char *input, struct in_addr *output) {
 
 void MyFriendStatusCallback(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length, void *) {
   printf("status msg #%d %s\n",friend_number,message);
-  Json::Reader reader;
-  Json::Value root;
-  if (reader.parse(std::string((const char *)message,length), root)) {
-    Json::Value ip = root["ownip"];
-    if (ip.isString()) {
-      std::string peerip = ip.asString();
+  try {
+    json root = json::parse(std::string((const char *)message,length));
+    json ip = root["ownip"];
+    if (ip.is_string()) {
+      std::string peerip = ip;
       struct in_addr peerBinary;
       inet_pton(AF_INET, peerip.c_str(), &peerBinary);
       printf("setting friend#%d ip to %s\n",friend_number,peerip.c_str());
       mynic->setPeerIp(peerBinary,friend_number);
+    } else {
+      // FIXME: handle error condition instead of silently failing
     }
-  } else {
+  } catch(...) {
     printf("unable to parse status, ignoring\n");
   }
   saveState(tox);
@@ -250,9 +253,8 @@ std::string readFile(std::string path) {
   return output;
 }
 
-void saveConfig(Json::Value root) {
-  Json::FastWriter fw;
-  std::string json = fw.write(root);
+void saveConfig(json root) {
+  std::string json = root.dump();
   FILE *handle = fopen("config.json","w");
   if (!handle) {
     cerr << "unable to open config file for writting" << endl;
@@ -272,23 +274,25 @@ int main(int argc, char **argv) {
   ToxVPNCore toxvpn;
 
   assert(strlen(BOOTSTRAP_FILE) > 5);
-  string bootstrap_json = readFile(BOOTSTRAP_FILE);
-  Json::Value bootstrapRoot;
-  Json::Reader reader;
 
-  if (reader.parse(bootstrap_json, bootstrapRoot)) {
-    Json::Value nodes = bootstrapRoot["nodes"];
-    assert(nodes.type() == Json::arrayValue);
-    for (size_t i=0; i<nodes.size(); i++) {
-      Json::Value e = nodes[(int)i];
-      //printf("node %d\n",i);
-      string ipv4 = e["ipv4"].asString();
-      uint16_t port = e["port"].asInt();
-      string pubkey = e["public_key"].asString();
-      //printf("%s %d %s\n", ipv4.c_str(), port, pubkey.c_str());
-      toxvpn.nodes.push_back(bootstrap_node(ipv4, port, pubkey));
-    }
+  json bootstrapRoot;
+
+  try {
+      bootstrapRoot = json::parse(readFile(BOOTSTRAP_FILE));
+      json nodes = bootstrapRoot["nodes"];
+      assert(nodes.is_array());
+      for (size_t i=0; i<nodes.size(); i++) {
+          json e = nodes[i];
+          //printf("node %d\n",i);
+          std::string ipv4   = e["ipv4"];
+          uint16_t    port   = e["port"];
+          std::string pubkey = e["public_key"];
+          //printf("%s %d %s\n", ipv4.c_str(), port, pubkey.c_str());
+          toxvpn.nodes.push_back(bootstrap_node(ipv4, port, pubkey));
+      }
+  } catch(...) {
   }
+
   toxvpn.nodes.shrink_to_fit();
 
   route_init();
@@ -300,7 +304,7 @@ int main(int argc, char **argv) {
   sigaction(SIGINT,&interupt,NULL);
 #endif
 
-  Json::Value configRoot;
+  json configRoot;
 
   int opt;
   TOX_ERR_NEW new_error;
@@ -399,30 +403,29 @@ int main(int argc, char **argv) {
     chdir(".toxvpn");
   }
 
-  std::string config = readFile("config.json");
-  if (reader.parse(config, configRoot)) {
-    if (changeIp.length() > 0) {
-      configRoot["myip"] = changeIp;
+  try {
+      std::string config = readFile("config.json");
+      configRoot = json::parse(config);
+      if (changeIp.length() > 0) {
+          configRoot["myip"] = changeIp;
+          saveConfig(configRoot);
+      }
+      json ip = configRoot["myip"];
+      if (ip.is_string()) {
+          myip = ip;
+      }
+  } catch(...) {
+      if (changeIp.length() > 0) {
+          configRoot["myip"] = myip = changeIp;
+      } else {
+          cout << "what is the VPN ip of this computer?" << endl;
+          cin >> myip;
+          configRoot["myip"] = myip;
+      }
       saveConfig(configRoot);
-    }
-    Json::Value ip = configRoot["myip"];
-    if (ip.isString()) {
-      myip = ip.asString();
-    }
-  } else {
-    if (changeIp.length() > 0) {
-      configRoot["myip"] = myip = changeIp;
-    } else {
-      cout << "what is the VPN ip of this computer?" << endl;
-      cin >> myip;
-      configRoot["myip"] = Json::Value(myip);
-    }
-    saveConfig(configRoot);
   }
 
-  Json::Value root;
-  root["ownip"] = configRoot["myip"];
-  Json::FastWriter fw;
+  json root { {"ownip", configRoot["myip"]} };
 
   Tox *my_tox;
   bool want_bootstrap = false;
@@ -483,9 +486,11 @@ int main(int argc, char **argv) {
   const char *hostname = "windows";
   tox_self_set_name(my_tox, (const uint8_t*)hostname,strlen(hostname),NULL);
 #endif
-  std::string json = fw.write(root);
-  if (json[json.length()-1] == '\n') json.erase(json.length()-1, 1);
-  tox_self_set_status_message(my_tox, (const uint8_t*)json.data(), json.length(), NULL); // Sets the status message
+  std::string json_str = root.dump();
+  if(json_str[json_str.length()-1] == '\n') {
+      json_str.erase(json_str.length()-1, 1);
+  }
+  tox_self_set_status_message(my_tox, (const uint8_t*)json_str.data(), json_str.length(), NULL); // Sets the status message
 
   /* Set the user status to TOX_USER_STATUS_NONE. Other possible values:
    * TOX_USER_STATUS_AWAY and TOX_USER_STATUS_BUSY */
