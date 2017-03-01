@@ -33,8 +33,9 @@ stdenv.mkDerivation {
   NIX_CFLAGS_COMPILE = if enableDebugging then [ "-ggdb -Og" ] else [];
 
   buildInputs = lib.concatLists [
-    [ cmake libtoxcoreLocked nlohmann_json libsodium libcap zeromq ]
+    [ cmake libtoxcoreLocked nlohmann_json libsodium zeromq ]
     (if_systemd systemd)
+    (lib.optional (stdenv.system != "x86_64-darwin") libcap)
   ];
 
   cmakeFlags = if_systemd [ "-DSYSTEMD=1" ];
