@@ -85,7 +85,7 @@ void MyFriendRequestCallback(Tox* tox,
     snprintf(formated, 511, "Friend request: %s\nto accept, run 'whitelist %s'",
              message, tox_printable_id);
 
-    printf("fixed: %s\n", formated);
+    printf("%s\n", formated);
     fflush(stdout);
 
     toxvpn->listener->broadcast(formated);
@@ -139,7 +139,7 @@ void FriendConnectionUpdate(Tox* tox,
     if(toxvpn->listener)
         toxvpn->listener->broadcast(formated);
 
-    printf("fixed: %s\n", formated);
+    printf("%s\n", formated);
     fflush(stdout);
 }
 
