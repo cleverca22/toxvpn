@@ -307,6 +307,10 @@ int main(int argc, char** argv) {
     json bootstrapRoot;
 
     try {
+        if (strcmp(BOOTSTRAP_FILE, "") == 0) {
+          cerr << "bootstrap file path is invalid\n";
+          return -2;
+        }
         bootstrapRoot = json::parse(readFile(BOOTSTRAP_FILE));
         json nodes = bootstrapRoot["nodes"];
         assert(nodes.is_array());
@@ -319,7 +323,10 @@ int main(int argc, char** argv) {
             // printf("%s %d %s\n", ipv4.c_str(), port, pubkey.c_str());
             toxvpn.nodes.push_back(bootstrap_node(ipv4, port, pubkey));
         }
-    } catch(...) {}
+    } catch(...) {
+      cerr << "exception while trying to load bootstrap nodes";
+      return -2;
+    }
 
     toxvpn.nodes.shrink_to_fit();
 
@@ -347,6 +354,7 @@ int main(int argc, char** argv) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'h':
+        case '?':
             cout << "-s\t\ttreat stdin as a unix socket server" << endl;
             cout << "-i <IP>\t\tuse this IP on the vpn" << endl;
             cout << "-l <path>\tlisten on a unix socket at this path" << endl;
@@ -415,7 +423,7 @@ int main(int argc, char** argv) {
         target_user = getpwnam("root");
     if(chdir(target_user->pw_dir)) {
 #endif
-        printf("unable to cd into $HOME: %s\n", strerror(errno));
+        printf("unable to cd into $HOME(%s): %s\n", target_user->pw_dir, strerror(errno));
         return -1;
     }
     if(chdir(".toxvpn")) {
