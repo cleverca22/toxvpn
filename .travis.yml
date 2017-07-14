@@ -2,15 +2,20 @@ language: c
 sudo: false
 compiler:
   - gcc
+dist: trusty
 os:
   - linux
   - osx
 
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
     packages:
     - libjsoncpp-dev
+    - libnlohmann-dev
     - libcap-dev
+    - g++-5
 cache:
   directories:
   - $HOME/libsodium
@@ -34,8 +39,10 @@ before_script:
 script:
   - mkdir build
   - cd build
+  - export CXX=g++-5
   - cmake ../ -DSTATIC=1 -DTOX_PREFIX=${HOME}/toxcore/ -DSODIUM_PREFIX=${HOME}/libsodium/
-  - make
+  - g++-5 --version
+  - CXX=g++-5 make
 
 notification:
   email: false
