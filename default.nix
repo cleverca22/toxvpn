@@ -33,12 +33,13 @@ stdenv.mkDerivation {
   NIX_CFLAGS_COMPILE = if enableDebugging then [ "-ggdb -Og" ] else [];
 
   buildInputs = lib.concatLists [
-    [ cmake libtoxcoreLocked nlohmann_json libsodium zeromq ]
+    [ cmake libtoxcoreLocked nlohmann_json libsodium ]
     (if_systemd systemd)
     (lib.optional (stdenv.system != "x86_64-darwin") libcap)
+    (lib.optional (zeromq != null) zeromq)
   ];
 
-  cmakeFlags = if_systemd [ "-DSYSTEMD=1" ];
+  cmakeFlags = (if_systemd [ "-DSYSTEMD=1" ]) ++ (lib.optional (zeromq != null) "-DZMQ=1");
 
   meta = with stdenv.lib; {
     description = "A tool for making tunneled connections over Tox";

@@ -1,4 +1,6 @@
+#ifdef ZMQ
 #include <zmq.h>
+#endif
 #include <unistd.h>
 #include <string.h>
 #include <sys/select.h>
@@ -11,6 +13,7 @@
 
 bool keep_running;
 
+#ifdef ZMQ
 void read_sub_socket(void* subscriber) {
     int more;
     size_t more_size = sizeof(more);
@@ -22,7 +25,6 @@ void read_sub_socket(void* subscriber) {
     if((rc == -1) && (errno == EAGAIN)) {
         return;
     }
-    printf("%d %d\n", rc, errno);
     assert(rc == 0);
 
     char* msg_contents = (char*) zmq_msg_data(&header);
@@ -39,11 +41,12 @@ void read_sub_socket(void* subscriber) {
         msg_size = zmq_msg_size(&msg);
         strncpy(buffer, msg_contents, msg_size);
         buffer[msg_size] = 0;
-        printf("more %d %d: %s\n", i, msg_size, buffer);
+        printf("%s\n", buffer);
         zmq_msg_close(&msg);
     }
     zmq_msg_close(&header);
 }
+#endif
 
 void read_stdin(int socket) {
     char buffer[512];
@@ -62,10 +65,12 @@ void read_socket(int socket) {
 }
 
 int main(int argc, char** argv) {
+#ifdef ZMQ
     void* zmq = zmq_ctx_new();
     void* subscriber = zmq_socket(zmq, ZMQ_SUB);
     zmq_connect(subscriber, "ipc:///run/toxvpn/controlbroadcast");
     zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "all", 3);
+#endif
 
     std::string unixSocket = "/run/toxvpn/control";
 
@@ -92,7 +97,9 @@ int main(int argc, char** argv) {
         maxfd = std::max(maxfd, socket);
 
         int r = select(maxfd + 1, &readset, NULL, NULL, &timeout);
+#ifdef ZMQ
         read_sub_socket(subscriber);
+#endif
         if(r > 0) {
             if(FD_ISSET(STDIN_FILENO, &readset))
                 read_stdin(socket);
@@ -104,6 +111,8 @@ int main(int argc, char** argv) {
         }
     }
 
+#ifdef ZMQ
     zmq_close(subscriber);
     zmq_ctx_term(zmq);
+#endif
 }

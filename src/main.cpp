@@ -3,7 +3,9 @@
 #include "listener.h"
 #include "interface.h"
 #include "route.h"
+#ifdef ZMQ
 #include <zmq.h>
+#endif
 #include <chrono>
 
 using namespace std;
@@ -299,7 +301,10 @@ int main(int argc, char** argv) {
     epoll_handle = epoll_create(20);
     assert(epoll_handle >= 0);
 #endif
+
+#ifdef ZMQ
     void* zmq = zmq_ctx_new();
+#endif
     ToxVPNCore toxvpn;
 
     assert(strlen(BOOTSTRAP_FILE) > 5);
@@ -549,8 +554,10 @@ int main(int argc, char** argv) {
 #ifdef WIN32
         puts("error, -l is linux only");
         return -1;
-#else
+#elif defined(ZMQ)
         toxvpn.listener = new SocketListener(mynic, unixSocket, zmq);
+#else
+        toxvpn.listener = new SocketListener(mynic, unixSocket);
 #endif
     } else if(stdin_is_socket) {
         toxvpn.listener = new SocketListener(mynic);
@@ -636,7 +643,9 @@ int main(int argc, char** argv) {
     puts("shutting down");
     saveState(my_tox);
     tox_kill(my_tox);
+#ifdef ZMQ
     zmq_ctx_term(zmq);
+#endif
     if(control)
         delete control;
     return 0;

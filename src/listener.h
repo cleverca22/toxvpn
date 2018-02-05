@@ -7,9 +7,12 @@ class SocketListener {
 public:
     SocketListener(NetworkInterface* interfarce);
 #ifndef WIN32
-    SocketListener(NetworkInterface* interfarce,
-                   std::string unixSocket,
-                   void* zmq);
+    SocketListener(NetworkInterface* interfarce
+                   ,std::string unixSocket
+#ifdef ZMQ
+                   ,void* zmq
+#endif
+                   );
 #endif
     int populate_fdset(fd_set* readset);
     void checkFds(fd_set* readset, Tox* my_tox, ToxVPNCore* toxvpn);

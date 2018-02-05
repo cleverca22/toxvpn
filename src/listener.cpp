@@ -1,6 +1,8 @@
 #include "main.h"
 #include "listener.h"
+#ifdef ZMQ
 #include <zmq.h>
+#endif
 
 using namespace ToxVPN;
 
@@ -9,9 +11,12 @@ SocketListener::SocketListener(NetworkInterface* iface) : interfarce(iface) {
 }
 
 #ifndef WIN32
-SocketListener::SocketListener(NetworkInterface* iface,
-                               std::string unixSocket,
-                               void* zmq)
+SocketListener::SocketListener(NetworkInterface* iface
+                               ,std::string unixSocket
+#ifdef ZMQ
+                               ,void* zmq
+#endif
+                               )
     : interfarce(iface) {
     socket = ::socket(AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr_un addr;
@@ -25,11 +30,13 @@ SocketListener::SocketListener(NetworkInterface* iface,
     chmod(unixSocket.c_str(), 0777);
     listen(socket, 5);
 
+#ifdef ZMQ
     zmq_broadcast = zmq_socket(zmq, ZMQ_PUB);
     int rc =
         zmq_bind(zmq_broadcast,
                  (std::string("ipc://") + unixSocket + "broadcast").c_str());
     assert(rc == 0);
+#endif
 }
 #endif
 
@@ -67,6 +74,8 @@ void SocketListener::checkFds(fd_set* readset,
 }
 
 void SocketListener::broadcast(const char* msg) {
+  printf("in broadcast with '%s'\n", msg);
+#ifdef ZMQ
     zmq_msg_t header;
     char* hack = new char[4];
     strcpy(hack, "all");
@@ -82,4 +91,5 @@ void SocketListener::broadcast(const char* msg) {
     rc = zmq_msg_init_data(&msg_out, (void*) copy, strlen(msg), NULL, NULL);
     assert(rc == 0);
     zmq_msg_send(&msg_out, zmq_broadcast, 0);
+#endif
 }
