@@ -24,6 +24,8 @@ public:
 private:
     std::list<Control*> connections;
     NetworkInterface* interfarce;
+#ifdef ZMQ
     void* zmq_broadcast;
+#endif
 };
 };
