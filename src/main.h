@@ -30,7 +30,7 @@
 
 #include <tox/tox.h>
 
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 #if defined(__CYGWIN__)
 #include <arpa/inet.h>
