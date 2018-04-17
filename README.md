@@ -5,7 +5,7 @@ toxvpn
 
 **toxvpn** is a powerful tool that allows one to make tunneled point to point connections over [Tox](https://github.com/irungentoo/toxcore).
 
-Using Tox for transport allows fast, efficient and reliable enrypted tunneling.
+Using Tox for transport allows fast, efficient and reliable encrypted tunneling.
 
 Currently only Linux has full support.
 
