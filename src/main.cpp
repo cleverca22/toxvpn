@@ -76,6 +76,9 @@ void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
         if(!tox_bootstrap(tox, node.ipv4.c_str(), node.port, bootstrap_pub_key, NULL)) {
             cerr << "DHT: error: failed bootstrapping via node " << i << endl;
         }
+        if(!tox_add_tcp_relay(tox, node.ipv4.c_str(), node.port, bootstrap_pub_key, NULL)) {
+            cerr << "DHT: error: failed adding node " << i << " as a TCP relay" << endl;
+        }
 
         delete[] bootstrap_pub_key;
     }
