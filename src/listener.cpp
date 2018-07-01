@@ -74,7 +74,7 @@ void SocketListener::checkFds(fd_set* readset,
 }
 
 void SocketListener::broadcast(const char* msg) {
-  printf("in broadcast with '%s'\n", msg);
+    //printf("in broadcast with '%s'\n", msg);
 #ifdef ZMQ
     zmq_msg_t header;
     char* hack = new char[4];
