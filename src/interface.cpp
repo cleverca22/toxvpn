@@ -35,7 +35,8 @@ void* NetworkInterface::loop() {
     return 0;
 }
 static const uint8_t required[] = {0x00, 0x00, 0x08, 0x00, 0x45};
-void dump_packet(uint8_t* buffer, ssize_t size) {
+void dump_packet(const char *dir, const uint8_t* buffer, ssize_t size) {
+    printf("%s ", dir);
     for(int i = 0; i < size; i++) {
         printf("%02x ", buffer[i]);
     }
@@ -53,7 +54,8 @@ void NetworkInterface::handleReadData() {
     for(unsigned int i = 0; i < sizeof(required); i++) {
         if(readbuffer[i] != required[i]) {
             puts("unsupported packet, dropping");
-            dump_packet(readbuffer, size);
+            dump_packet("read", readbuffer, size);
+            return;
         }
     }
 #endif
@@ -65,9 +67,10 @@ void NetworkInterface::handleReadData() {
 #define OFFSET 1
     struct in_addr* dest = (struct in_addr*) (readbuffer + 20);
 #endif
-    // printf("read %d bytes on master interface for
-    // %s\n",size,inet_ntoa(*dest));
-    // dump_packet(readbuffer,size);
+
+    //printf("read %d bytes on master interface for %s\n",size,inet_ntoa(*dest));
+    //dump_packet("read", readbuffer, size);
+
     Route route;
     if(findRoute(&route, *dest)) {
         forwardPacket(route, readbuffer, size);
@@ -139,11 +142,8 @@ bool NetworkInterface::findRoute(Route* route, struct in_addr peer) {
 void NetworkInterface::processPacket(const uint8_t* data,
                                      size_t size,
                                      int friend_number) {
-    /*printf("packet %d ==",size);
-    for (int i=0; i<size; i++) {
-      printf(" %02x",data[i]);
-    }
-    printf("\n");*/
+    //dump_packet("write", data, size);
+
     ssize_t ret = 0;
     if(fd) {
 #ifdef __APPLE__

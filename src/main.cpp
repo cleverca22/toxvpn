@@ -50,22 +50,39 @@ void saveState(Tox* tox) {
     int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
     assert(fd);
     ssize_t written = write(fd, savedata, size);
-    assert(written > 0); // FIXME: check even if NDEBUG is disabled
+    assert(written == size); // FIXME: check even if NDEBUG is disabled
     close(fd);
     delete[] savedata;
 }
 
 void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
-    assert(toxvpn->nodes.size() > 0);
-    size_t i = rand() % toxvpn->nodes.size();
-    printf("%lu / %lu\n", i, toxvpn->nodes.size());
-    uint8_t* bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
-    hex_string_to_bin(toxvpn->nodes[i].pubkey.c_str(), bootstrap_pub_key);
-    tox_bootstrap(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port,
-                  bootstrap_pub_key, NULL);
-    delete[] bootstrap_pub_key;
+    size_t size = toxvpn->nodes.size();
+    assert(size > 0);
+    cout << "DHT: bootstrap list has " << size << " nodes" << endl;
+
+    size_t i = rand() % size;
+    for (size_t j = 0; j < 2; ++j) {
+        i = (i + j) % size;
+
+        bootstrap_node &node = toxvpn->nodes[i];
+        cout << "DHT: bootstrapping via "
+             << node.ipv4.c_str() << ":" << node.port
+             << " (node "<< i << "/" << size << ")" << endl;
+        cout.flush();
+
+        uint8_t* bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
+        hex_string_to_bin(node.pubkey.c_str(), bootstrap_pub_key);
+
+        if(!tox_bootstrap(tox, node.ipv4.c_str(), node.port, bootstrap_pub_key, NULL)) {
+            cerr << "DHT: error: failed bootstrapping via node " << i << endl;
+        }
+        if(!tox_add_tcp_relay(tox, node.ipv4.c_str(), node.port, bootstrap_pub_key, NULL)) {
+            cerr << "DHT: error: failed adding node " << i << " as a TCP relay" << endl;
+        }
+
+        delete[] bootstrap_pub_key;
+    }
     toxvpn->last_boostrap = steady_clock::now();
-    fflush(stdout);
 }
 
 ToxVPNCore::ToxVPNCore() : listener(0){};
@@ -83,19 +100,24 @@ void MyFriendRequestCallback(Tox* tox,
     memset(tox_printable_id, 0, sizeof(tox_printable_id));
     to_hex(tox_printable_id, public_key, TOX_PUBLIC_KEY_SIZE);
 
+    cout << "> friend request from " << tox_printable_id << endl;
+    cout << "> ------------------ BEGIN ------------------" << endl;
+    cout << "> " << message << endl;
+    cout << "> ------------------- END -------------------" << endl;
+    cout << "> to accept run:" << endl;
+    cout << ">   whitelist " << tox_printable_id << endl << endl;
+    cout.flush();
+
     char formated[512];
-    snprintf(formated, 511, "Friend request: %s\nto accept, run 'whitelist %s'",
-             message, tox_printable_id);
-
-    printf("%s\n", formated);
-    fflush(stdout);
-
+    snprintf(formated, 511, "friend request from %s", tox_printable_id);
     toxvpn->listener->broadcast(formated);
     saveState(tox);
 }
 
 #ifdef SYSTEMD
 static void notify(const char* message) { sd_notify(0, message); }
+#else
+static void notify(const char* message) { }
 #endif
 
 bool did_ready = false;
@@ -104,9 +126,20 @@ void do_ready() {
     if(did_ready)
         return;
     did_ready = true;
-#ifdef SYSTEMD
     notify("READY=1");
-#endif
+}
+
+string get_friend_name(Tox* tox, const uint32_t friend_number)
+{
+    size_t namesize = tox_friend_get_name_size(tox, friend_number, 0);
+    uint8_t* friend_name = new uint8_t[namesize + 1];
+    if (!tox_friend_get_name(tox, friend_number, friend_name, NULL)) {
+        delete[] friend_name;
+        return "";
+    }
+    string output((char *) friend_name, namesize);
+    delete[] friend_name;
+    return output;
 }
 
 void FriendConnectionUpdate(Tox* tox,
@@ -114,45 +147,46 @@ void FriendConnectionUpdate(Tox* tox,
                             TOX_CONNECTION connection_status,
                             void* user_data) {
     ToxVPNCore* toxvpn = static_cast<ToxVPNCore*>(user_data);
-    size_t namesize = tox_friend_get_name_size(tox, friend_number, 0);
-    uint8_t* friendname = new uint8_t[namesize + 1];
-    tox_friend_get_name(tox, friend_number, friendname, NULL);
-    friendname[namesize] = 0;
+    string friend_name = get_friend_name(tox, friend_number);
 
     char formated[512];
-
     switch(connection_status) {
     case TOX_CONNECTION_NONE:
-        snprintf(formated, 511, "friend %d(%s) went offline", friend_number,
-                 friendname);
+        snprintf(formated, 511, "friend #%d (%s) went offline", friend_number,
+                 friend_name.c_str());
         mynic->removePeer(friend_number);
         break;
     case TOX_CONNECTION_TCP:
-        snprintf(formated, 511, "friend %d(%s) connected via tcp",
-                 friend_number, friendname);
+        snprintf(formated, 511, "friend #%d (%s) connected via TCP relay",
+                 friend_number, friend_name.c_str());
         break;
     case TOX_CONNECTION_UDP:
-        snprintf(formated, 511, "friend %d(%s) connected via udp",
-                 friend_number, friendname);
+        snprintf(formated, 511, "friend #%d (%s) connected via direct UDP",
+                 friend_number, friend_name.c_str());
         break;
     }
-    delete[] friendname;
+
+    cout << "> " << formated << endl << endl;
+    cout.flush();
 
     if(toxvpn->listener)
         toxvpn->listener->broadcast(formated);
-
-    printf("%s\n", formated);
-    fflush(stdout);
 }
 
-void MyFriendMessageCallback(Tox*,
+void MyFriendMessageCallback(Tox* tox,
                              uint32_t friend_number,
                              TOX_MESSAGE_TYPE type,
-                             const uint8_t* message,
+                             const uint8_t* msg,
                              size_t length,
                              void*) {
-    string msg((char*) message, length);
-    cout << "message" << friend_number << msg << type << endl;
+    string friend_name = get_friend_name(tox, friend_number);
+    string message((char*) msg, length);
+
+    cout << "> message from friend #" << friend_number << " (" << friend_name << ") of type " << type << endl;
+    cout << "> ------------------ BEGIN ------------------" << endl;
+    cout << "> " << message << endl;
+    cout << "> ------------------- END -------------------" << endl << endl;
+    cout.flush();
 }
 
 #ifdef WIN32
@@ -167,23 +201,49 @@ void MyFriendStatusCallback(Tox* tox,
                             const uint8_t* message,
                             size_t length,
                             void*) {
-    printf("status msg #%d %s\n", friend_number, message);
+    string friend_name = get_friend_name(tox, friend_number);
+
+    cout << "> status change from friend #" << friend_number << " (" << friend_name << ")" << endl;
+    cout << "> ------------------ BEGIN ------------------" << endl;
+    cout << "> " << message << endl;
+    cout << "> ------------------- END -------------------" << endl;
+
+    json ip;
+
     try {
         json root = json::parse(std::string((const char*) message, length));
-        json ip = root["ownip"];
-        if(ip.is_string()) {
-            std::string peerip = ip;
-            struct in_addr peerBinary;
-            inet_pton(AF_INET, peerip.c_str(), &peerBinary);
-            printf("setting friend#%d ip to %s\n", friend_number,
-                   peerip.c_str());
-            mynic->setPeerIp(peerBinary, friend_number);
-        } else {
-            // FIXME: handle error condition instead of silently failing
-        }
-    } catch(...) { printf("unable to parse status, ignoring\n"); }
+        ip = root["ownip"];
+    } catch(...) {
+        cout << "> is of wrong format, ignoring" << endl << endl;
+        cout.flush();
+        return;
+    }
+
+    if(!ip.is_string()) {
+        cout << "> is of wrong format, ignoring" << endl << endl;
+        cout.flush();
+        return;
+    }
+
+    string peerip = ip;
+    struct in_addr peerBinary;
+    if (!inet_pton(AF_INET, peerip.c_str(), &peerBinary)) {
+        cout << "> has unparsable IP, ignoring" << endl << endl;
+        cout.flush();
+        return;
+    }
+
+    cout << "> parsed successfully" << endl << endl;
+
+    mynic->setPeerIp(peerBinary, friend_number);
+
+    cout << "NIC: routing " << peerip.c_str()
+         << " to friend #" << friend_number
+         << " (" << friend_name << ")"
+         << endl << endl;
+    cout.flush();
+
     saveState(tox);
-    fflush(stdout);
 }
 
 void MyFriendLossyPacket(Tox*,
@@ -197,7 +257,7 @@ void MyFriendLossyPacket(Tox*,
 }
 
 void handle_int(int something) {
-    printf("int %d!", something);
+    //cerr << "int " << something << endl;
     keep_running = false;
 }
 
@@ -216,15 +276,19 @@ void add_auto_friends(Tox* tox, ToxVPNCore* toxvpn) {
         switch(error) {
         case TOX_ERR_FRIEND_ADD_OK:
             need_save = true;
-            cout << "added " << toxid << "\n";
+            cout << "added " << toxid << endl;
+            cout.flush();
             break;
         case TOX_ERR_FRIEND_ADD_ALREADY_SENT: break;
         case TOX_ERR_FRIEND_ADD_BAD_CHECKSUM:
-            cerr << "crc error when handling auto-friend" << toxid << "\n";
+            cerr << "crc error when handling auto-friend" << toxid << endl;
             break;
-        default: printf("err code %d\n", error);
+        default:
+            cerr << "err code " << error << endl;
+            break;
         }
     }
+
     if(need_save)
         saveState(tox);
 }
@@ -239,35 +303,31 @@ void connection_status(Tox* tox,
     memset(tox_printable_id, 0, sizeof(tox_printable_id));
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
 
-    char buffer[128];
     const char* msg = 0;
 
     switch(connection_status) {
     case TOX_CONNECTION_NONE:
         msg = "offline";
-        puts("connection lost");
         break;
     case TOX_CONNECTION_TCP:
-        msg = "connected via tcp";
-        puts("tcp connection established");
+        msg = "connected via TCP";
         do_ready();
         add_auto_friends(tox, toxvpn);
         break;
     case TOX_CONNECTION_UDP:
-        msg = "connected via udp";
-        puts("udp connection established");
+        msg = "connected via UDP";
         do_ready();
         add_auto_friends(tox, toxvpn);
         break;
     }
     if(msg) {
+        cout << "DHT: " << msg << endl;
+        cout.flush();
+        char buffer[128];
         snprintf(buffer, 120, "STATUS=%s, id=%s", msg, tox_printable_id);
-#ifdef SYSTEMD
         notify(buffer);
-#endif
     }
     saveState(tox);
-    fflush(stdout);
 }
 
 std::string readFile(std::string path) {
@@ -297,14 +357,6 @@ void saveConfig(json root) {
 }
 
 int main(int argc, char** argv) {
-#ifdef USE_EPOLL
-    epoll_handle = epoll_create(20);
-    assert(epoll_handle >= 0);
-#endif
-
-#ifdef ZMQ
-    void* zmq = zmq_ctx_new();
-#endif
     ToxVPNCore toxvpn;
 
     assert(strlen(BOOTSTRAP_FILE) > 5);
@@ -313,27 +365,38 @@ int main(int argc, char** argv) {
 
     try {
         if (strcmp(BOOTSTRAP_FILE, "") == 0) {
-          cerr << "bootstrap file path is invalid\n";
-          return -2;
+            cerr << "bootstrap file path is invalid" << endl;
+            return -2;
         }
         bootstrapRoot = json::parse(readFile(BOOTSTRAP_FILE));
         json nodes = bootstrapRoot["nodes"];
         assert(nodes.is_array());
         for(size_t i = 0; i < nodes.size(); i++) {
             json e = nodes[i];
-            // printf("node %d\n",i);
+            // cout << "node " << i << endl;
             std::string ipv4 = e["ipv4"];
             uint16_t port = e["port"];
             std::string pubkey = e["public_key"];
-            // printf("%s %d %s\n", ipv4.c_str(), port, pubkey.c_str());
+            // cout << ipv4.c_str() << ":" port << " key:" << pubkey.c_str() << endl;
             toxvpn.nodes.push_back(bootstrap_node(ipv4, port, pubkey));
         }
     } catch(...) {
-      cerr << "exception while trying to load bootstrap nodes";
-      return -2;
+        cerr << "exception while trying to load bootstrap nodes" << endl;
+        return -2;
     }
 
     toxvpn.nodes.shrink_to_fit();
+
+#ifdef USE_SELECT
+    fd_set readset;
+#endif
+#ifdef USE_EPOLL
+    epoll_handle = epoll_create(20);
+    assert(epoll_handle >= 0);
+#endif
+#ifdef ZMQ
+    void* zmq = zmq_ctx_new();
+#endif
 
     route_init();
 
@@ -348,32 +411,32 @@ int main(int argc, char** argv) {
 
     int opt;
     TOX_ERR_NEW new_error;
+
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
+    struct passwd* target_user = NULL;
+
     struct Tox_Options* opts = tox_options_new(NULL);
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
-    struct passwd* target_user = 0;
-    while((opt = getopt(argc, argv, "shi:l:u:p:a:")) != -1) {
+    while((opt = getopt(argc, argv, "sl:u:p:i:a:h")) != -1) {
         switch(opt) {
-        case 's': stdin_is_socket = true; break;
-        case 'h':
-        case '?':
-            cout << "-s\t\ttreat stdin as a unix socket server" << endl;
-            cout << "-i <IP>\t\tuse this IP on the vpn" << endl;
-            cout << "-l <path>\tlisten on a unix socket at this path" << endl;
-            cout << "-u <user>\tswitch to this user once root is no longer "
-                    "required"
-                 << endl;
-            cout << "-p <port>\tbind on a given port" << endl;
-            cout << "-h\t\tprint this help" << endl;
-            return 0;
-        case 'i': changeIp = optarg; break;
-        case 'l': unixSocket = optarg; break;
+        case 's':
+            stdin_is_socket = true;
+            break;
+        case 'l':
+#ifdef WIN32
+            cerr << "-l is not supported on windows" << endl;
+            return -1;
+#else
+            unixSocket = optarg;
+            break;
+#endif
         case 'u':
 #if defined(WIN32) || defined(__CYGWIN__)
-            puts("-u not currently supported on windows");
+            cerr << "-u is not currently supported on windows" << endl;
+            return -1;
 #else
             target_user = getpwnam(optarg);
             assert(target_user);
@@ -383,19 +446,35 @@ int main(int argc, char** argv) {
             opts->start_port = opts->end_port =
                 (uint16_t) strtol(optarg, 0, 10);
             break;
-        case 'a': toxvpn.auto_friends.push_back(string(optarg)); break;
+        case 'i':
+            changeIp = optarg;
+            break;
+        case 'a':
+            toxvpn.auto_friends.push_back(string(optarg));
+            break;
+        case 'h':
+        case '?':
+        default:
+            cout << "-s\t\ttreat stdin as a unix socket server" << endl;
+            cout << "-i <IP>\t\tuse this IP on the vpn" << endl;
+            cout << "-p <port>\tbind on a given port" << endl;
+            cout << "-a <ID>\t\tadd this ID as a friend (can be repeated)" << endl;
+            cout << "-l <path>\tlisten on a unix socket at this path" << endl;
+            cout << "-u <user>\tswitch to this user once root is no longer required"
+                 << endl;
+            cout << "-h\t\tprint this help" << endl;
+            return 0;
         }
     }
     toxvpn.auto_friends.shrink_to_fit();
 
-    puts("creating interface");
+#if !defined(WIN32) && !defined(__CYGWIN__)
+    if(!target_user)
+        target_user = getpwnam("root");
+#endif
+
     mynic = new NetworkInterface();
-#if defined(WIN32) || defined(__CYGWIN__)
-    puts("no drop root support yet");
-    if(0) { // TODO, cd into %AppData%
-#else
     if(target_user) {
-        puts("setting uid");
 #if !defined(WIN32) && !defined(__APPLE__) && !defined(__CYGWIN__)
         cap_value_t cap_values[] = {CAP_NET_ADMIN};
         cap_t caps;
@@ -424,18 +503,18 @@ int main(int argc, char** argv) {
         cap_set_proc(caps);
         cap_free(caps);
 #endif
-    } else
-        target_user = getpwnam("root");
-    if(chdir(target_user->pw_dir)) {
-#endif
-        printf("unable to cd into $HOME(%s): %s\n", target_user->pw_dir, strerror(errno));
-        return -1;
+
+        if(chdir(target_user->pw_dir)) {
+            cerr << "unable to cd into " << target_user->pw_dir
+                 << " ($HOME): " << strerror(errno) << endl;
+            return -1;
+        }
     }
+
     if(chdir(".toxvpn")) {
         mkdir(".toxvpn"
 #ifndef WIN32
-              ,
-              0755
+              , 0755
 #endif
               );
         chdir(".toxvpn");
@@ -457,6 +536,7 @@ int main(int argc, char** argv) {
             configRoot["myip"] = myip = changeIp;
         } else {
             cout << "what is the VPN ip of this computer?" << endl;
+            cout.flush();
             cin >> myip;
             configRoot["myip"] = myip;
         }
@@ -466,7 +546,8 @@ int main(int argc, char** argv) {
     json root{{"ownip", configRoot["myip"]}};
 
     Tox* my_tox;
-    bool want_bootstrap = false;
+    bool want_bootstrap = true;
+
     int oldstate = open("savedata", O_RDONLY);
     if(oldstate >= 0) {
         struct stat info;
@@ -480,7 +561,6 @@ int main(int argc, char** argv) {
         opts->savedata_length = size;
     }
 
-    want_bootstrap = true;
     my_tox = tox_new(opts, &new_error);
     if(!my_tox) {
         opts->ipv6_enabled = false;
@@ -500,14 +580,16 @@ int main(int argc, char** argv) {
     if(opts->savedata_data)
         delete[] opts->savedata_data;
     tox_options_free(opts);
-    opts = 0;
 
     uint8_t toxid[TOX_ADDRESS_SIZE];
     tox_self_get_address(my_tox, toxid);
     char tox_printable_id[TOX_ADDRESS_SIZE * 2 + 1];
     memset(tox_printable_id, 0, sizeof(tox_printable_id));
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
-    printf("my id is %s and IP is %s\n", tox_printable_id, myip.c_str());
+
+    cout << "my ToxID is " << tox_printable_id << endl;
+    cout << "my    IP is " << myip.c_str() << endl;
+    cout.flush();
 
     /* Register the callbacks */
     tox_callback_friend_request(my_tox, MyFriendRequestCallback);
@@ -521,13 +603,12 @@ int main(int argc, char** argv) {
 #ifndef WIN32
     struct utsname hostinfo;
     uname(&hostinfo);
-    tox_self_set_name(my_tox, (const uint8_t*) hostinfo.nodename,
-                      strlen(hostinfo.nodename), NULL); // Sets the username
+    const char* hostname = hostinfo.nodename;
 #else
     const char* hostname = "windows";
-    tox_self_set_name(my_tox, (const uint8_t*) hostname, strlen(hostname),
-                      NULL);
 #endif
+    tox_self_set_name(my_tox, (const uint8_t*) hostname, strlen(hostname), NULL);
+
     std::string json_str = root.dump();
     if(json_str[json_str.length() - 1] == '\n') {
         json_str.erase(json_str.length() - 1, 1);
@@ -540,21 +621,11 @@ int main(int argc, char** argv) {
      * TOX_USER_STATUS_AWAY and TOX_USER_STATUS_BUSY */
     tox_self_set_status(my_tox, TOX_USER_STATUS_NONE);
 
-    /* Bootstrap from the node defined above */
-    if(want_bootstrap)
-        do_bootstrap(my_tox, &toxvpn);
-
-#ifdef USE_SELECT
-    fd_set readset;
-#endif
     mynic->configure(myip, my_tox);
     Control* control = 0;
 
     if(unixSocket.length()) {
-#ifdef WIN32
-        puts("error, -l is linux only");
-        return -1;
-#elif defined(ZMQ)
+#if defined(ZMQ)
         toxvpn.listener = new SocketListener(mynic, unixSocket, zmq);
 #else
         toxvpn.listener = new SocketListener(mynic, unixSocket);
@@ -564,28 +635,32 @@ int main(int argc, char** argv) {
     } else {
         control = new Control(mynic);
     }
-    fflush(stdout);
+
+    /* Bootstrap from the node defined above */
+    if(want_bootstrap)
+        do_bootstrap(my_tox, &toxvpn);
+
     while(keep_running) {
+        int interval = tox_iteration_interval(my_tox);
+
 #ifdef USE_SELECT
-        FD_ZERO(&readset);
         struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = interval * 1000;
+
+        FD_ZERO(&readset);
+
         int maxfd = 0;
+        int r = 0;
 #if 0
-    maxfd = tox_populate_fdset(my_tox,&readset);
+        maxfd = tox_populate_fdset(my_tox, &readset);
 #endif
 #ifndef WIN32
         if(control)
             maxfd = std::max(maxfd, control->populate_fdset(&readset));
         if(toxvpn.listener)
             maxfd = std::max(maxfd, toxvpn.listener->populate_fdset(&readset));
-#endif
-#endif
-        int interval = tox_iteration_interval(my_tox);
-#ifdef USE_SELECT
-        timeout.tv_sec = 0;
-        timeout.tv_usec = interval * 1000;
-        int r;
-#ifdef WIN32
+#else
         if(maxfd == 0) {
             Sleep(interval);
             r = -2;
@@ -604,9 +679,21 @@ int main(int argc, char** argv) {
             if(r != -2) {
 #ifdef WIN32
                 int error = WSAGetLastError();
-                printf("winsock error %d %d\n", error, r);
+                cout << "winsock error: " << error << endl;
 #endif
-                printf("select error %d %d %s\n", r, errno, strerror(errno));
+                cout << "select returned " << r << " error: " << strerror(errno);
+            }
+        }
+#endif
+#ifdef USE_EPOLL
+        struct epoll_event events[10];
+        int count = epoll_wait(epoll_handle, events, 10, interval);
+        if(count == -1)
+            cerr << "epoll error " << strerror(errno) << endl;
+        else {
+            for(int i = 0; i < count; i++) {
+                EpollTarget* t = (EpollTarget*) events[i].data.ptr;
+                t->handleReadData(my_tox);
             }
         }
 #endif
@@ -615,18 +702,6 @@ int main(int argc, char** argv) {
             my_tox,
             &toxvpn); // will call the callback functions defined and registered
 
-#ifdef USE_EPOLL
-        struct epoll_event events[10];
-        int count = epoll_wait(epoll_handle, events, 10, interval);
-        if(count == -1)
-            std::cout << "epoll error " << strerror(errno) << std::endl;
-        else {
-            for(int i = 0; i < count; i++) {
-                EpollTarget* t = (EpollTarget*) events[i].data.ptr;
-                t->handleReadData(my_tox);
-            }
-        }
-#endif
         TOX_CONNECTION conn_status = tox_self_get_connection_status(my_tox);
         if(conn_status == TOX_CONNECTION_NONE) {
             steady_clock::time_point now = steady_clock::now();
@@ -637,10 +712,8 @@ int main(int argc, char** argv) {
             }
         }
     } // while(keep_running)
-#ifdef SYSTEMD
+    //cout << "shutting down" << enl;
     notify("STOPPING=1");
-#endif
-    puts("shutting down");
     saveState(my_tox);
     tox_kill(my_tox);
 #ifdef ZMQ

@@ -42,7 +42,7 @@ void NetworkInterface::configure(string ip_in, Tox* tox_in) {
     if(err)
         printf("error %d setting mtu\n", err);
 
-    printf("setting ip to %s\n", ip_in.c_str());
+    //printf("setting ip to %s\n", ip_in.c_str());
     struct sockaddr_in address;
     address.sin_family = AF_INET;
     inet_aton(ip_in.c_str(), &address.sin_addr);
