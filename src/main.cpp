@@ -50,7 +50,7 @@ void saveState(Tox* tox) {
     int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
     assert(fd);
     ssize_t written = write(fd, savedata, size);
-    assert(written > 0); // FIXME: check even if NDEBUG is disabled
+    assert(written == size); // FIXME: check even if NDEBUG is disabled
     close(fd);
     delete[] savedata;
 }
@@ -174,10 +174,11 @@ void MyFriendStatusCallback(Tox* tox,
         if(ip.is_string()) {
             std::string peerip = ip;
             struct in_addr peerBinary;
-            inet_pton(AF_INET, peerip.c_str(), &peerBinary);
-            printf("setting friend#%d ip to %s\n", friend_number,
-                   peerip.c_str());
-            mynic->setPeerIp(peerBinary, friend_number);
+            if(inet_pton(AF_INET, peerip.c_str(), &peerBinary)) {
+                mynic->setPeerIp(peerBinary, friend_number);
+                printf("setting friend#%d ip to %s\n", friend_number,
+                       peerip.c_str());
+            }
         } else {
             // FIXME: handle error condition instead of silently failing
         }
