@@ -70,7 +70,8 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
             uint64_t hack = lastonline;
             fprintf(output,
                     "friend#%2d name:%15s status:%10s %30s lastonline:%ld\n",
-                    friendid, friendname, statusString.c_str(), status, hack);
+                    friendid, friendname, statusString.c_str(), status,
+                    (long)hack);
             delete[] friendname;
             delete[] status;
         }

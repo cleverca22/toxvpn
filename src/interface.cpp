@@ -34,7 +34,9 @@ void* NetworkInterface::loop() {
     }
     return 0;
 }
+#ifndef __APPLE__
 static const uint8_t required[] = {0x00, 0x00, 0x08, 0x00, 0x45};
+#endif
 void dump_packet(uint8_t* buffer, ssize_t size) {
     for(int i = 0; i < size; i++) {
         printf("%02x ", buffer[i]);
