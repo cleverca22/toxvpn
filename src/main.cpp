@@ -49,7 +49,10 @@ void saveState(Tox* tox) {
     tox_get_savedata(tox, savedata);
     int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
     assert(fd);
-    ssize_t written = write(fd, savedata, size);
+#ifndef NDEBUG
+    ssize_t written =
+#endif
+        write(fd, savedata, size);
     assert(written > 0); // FIXME: check even if NDEBUG is disabled
     close(fd);
     delete[] savedata;
@@ -62,13 +65,13 @@ void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
     uint8_t* bootstrap_pub_key = new uint8_t[TOX_PUBLIC_KEY_SIZE];
     hex_string_to_bin(toxvpn->nodes[i].pubkey.c_str(), bootstrap_pub_key);
     tox_bootstrap(tox, toxvpn->nodes[i].ipv4.c_str(), toxvpn->nodes[i].port,
-                  bootstrap_pub_key, NULL);
+                  bootstrap_pub_key, nullptr);
     delete[] bootstrap_pub_key;
     toxvpn->last_boostrap = steady_clock::now();
     fflush(stdout);
 }
 
-ToxVPNCore::ToxVPNCore() : listener(0){};
+ToxVPNCore::ToxVPNCore() : listener(nullptr){}
 }
 
 void MyFriendRequestCallback(Tox* tox,
@@ -114,9 +117,9 @@ void FriendConnectionUpdate(Tox* tox,
                             TOX_CONNECTION connection_status,
                             void* user_data) {
     ToxVPNCore* toxvpn = static_cast<ToxVPNCore*>(user_data);
-    size_t namesize = tox_friend_get_name_size(tox, friend_number, 0);
+    size_t namesize = tox_friend_get_name_size(tox, friend_number, nullptr);
     uint8_t* friendname = new uint8_t[namesize + 1];
-    tox_friend_get_name(tox, friend_number, friendname, NULL);
+    tox_friend_get_name(tox, friend_number, friendname, nullptr);
     friendname[namesize] = 0;
 
     char formated[512];
@@ -240,7 +243,7 @@ void connection_status(Tox* tox,
     to_hex(tox_printable_id, toxid, TOX_ADDRESS_SIZE);
 
     char buffer[128];
-    const char* msg = 0;
+    const char* msg = nullptr;
 
     switch(connection_status) {
     case TOX_CONNECTION_NONE:
@@ -341,7 +344,7 @@ int main(int argc, char** argv) {
     struct sigaction interupt;
     memset(&interupt, 0, sizeof(interupt));
     interupt.sa_handler = &handle_int;
-    sigaction(SIGINT, &interupt, NULL);
+    sigaction(SIGINT, &interupt, nullptr);
 #endif
 
     json configRoot;
@@ -351,10 +354,10 @@ int main(int argc, char** argv) {
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
-    struct Tox_Options* opts = tox_options_new(NULL);
+    struct Tox_Options* opts = tox_options_new(nullptr);
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
-    struct passwd* target_user = 0;
+    struct passwd* target_user = nullptr;
     while((opt = getopt(argc, argv, "shi:l:u:p:a:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
@@ -381,7 +384,7 @@ int main(int argc, char** argv) {
             break;
         case 'p':
             opts->start_port = opts->end_port =
-                (uint16_t) strtol(optarg, 0, 10);
+                (uint16_t) strtol(optarg, nullptr, 10);
             break;
         case 'a': toxvpn.auto_friends.push_back(string(optarg)); break;
         }
@@ -500,7 +503,7 @@ int main(int argc, char** argv) {
     if(opts->savedata_data)
         delete[] opts->savedata_data;
     tox_options_free(opts);
-    opts = 0;
+    opts = nullptr;
 
     uint8_t toxid[TOX_ADDRESS_SIZE];
     tox_self_get_address(my_tox, toxid);
@@ -522,11 +525,11 @@ int main(int argc, char** argv) {
     struct utsname hostinfo;
     uname(&hostinfo);
     tox_self_set_name(my_tox, (const uint8_t*) hostinfo.nodename,
-                      strlen(hostinfo.nodename), NULL); // Sets the username
+                      strlen(hostinfo.nodename), nullptr); // Sets the username
 #else
     const char* hostname = "windows";
     tox_self_set_name(my_tox, (const uint8_t*) hostname, strlen(hostname),
-                      NULL);
+                      nullptr);
 #endif
     std::string json_str = root.dump();
     if(json_str[json_str.length() - 1] == '\n') {
@@ -534,7 +537,7 @@ int main(int argc, char** argv) {
     }
     tox_self_set_status_message(my_tox, (const uint8_t*) json_str.data(),
                                 json_str.length(),
-                                NULL); // Sets the status message
+                                nullptr); // Sets the status message
 
     /* Set the user status to TOX_USER_STATUS_NONE. Other possible values:
      * TOX_USER_STATUS_AWAY and TOX_USER_STATUS_BUSY */
@@ -548,7 +551,7 @@ int main(int argc, char** argv) {
     fd_set readset;
 #endif
     mynic->configure(myip, my_tox);
-    Control* control = 0;
+    Control* control = nullptr;
 
     if(unixSocket.length()) {
 #ifdef WIN32
@@ -591,7 +594,7 @@ int main(int argc, char** argv) {
             r = -2;
         } else
 #endif
-            r = select(maxfd + 1, &readset, NULL, NULL, &timeout);
+            r = select(maxfd + 1, &readset, nullptr, nullptr, &timeout);
         if(r > 0) {
             if(control && FD_ISSET(control->handle, &readset))
                 control->handleReadData(my_tox, &toxvpn);

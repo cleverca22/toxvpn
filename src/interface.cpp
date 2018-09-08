@@ -21,7 +21,7 @@ void* NetworkInterface::loop() {
         FD_SET(fd, &readset);
         timeout.tv_sec = 60;
         timeout.tv_usec = 0;
-        r = select(fd + 1, &readset, NULL, NULL, &timeout);
+        r = select(fd + 1, &readset, nullptr, nullptr, &timeout);
         if(r > 0) {
             if(FD_ISSET(fd, &readset))
                 handleReadData();
@@ -32,7 +32,7 @@ void* NetworkInterface::loop() {
                    strerror(errno));
         }
     }
-    return 0;
+    return nullptr;
 }
 #ifndef __APPLE__
 static const uint8_t required[] = {0x00, 0x00, 0x08, 0x00, 0x45};
@@ -154,6 +154,6 @@ void NetworkInterface::processPacket(const uint8_t* data,
         ret = write(fd, data, size);
 #endif
     }
-    if(ret != size)
+    if((size_t)ret != size)
         cerr << "partial packet write to tun\n";
 }

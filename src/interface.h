@@ -47,4 +47,4 @@ private:
     Tox* my_tox;
     int interfaceIndex;
 };
-};
+}

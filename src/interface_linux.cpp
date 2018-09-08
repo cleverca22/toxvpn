@@ -9,7 +9,7 @@ static void* start_routine(void* x) {
     return nic->loop();
 }
 
-NetworkInterface::NetworkInterface() : my_tox(0) {
+NetworkInterface::NetworkInterface() : my_tox(nullptr) {
     fd = 0;
     if((fd = open("/dev/net/tun", O_RDWR)) < 0) {
         cerr << "unable to open /dev/net/tun" << endl;

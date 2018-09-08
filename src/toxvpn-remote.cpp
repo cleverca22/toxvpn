@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
         FD_SET(socket, &readset);
         maxfd = std::max(maxfd, socket);
 
-        int r = select(maxfd + 1, &readset, NULL, NULL, &timeout);
+        int r = select(maxfd + 1, &readset, nullptr, nullptr, &timeout);
 #ifdef ZMQ
         read_sub_socket(subscriber);
 #endif
