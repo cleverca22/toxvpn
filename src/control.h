@@ -18,4 +18,4 @@ private:
     NetworkInterface* interfarce;
     FILE *input, *output;
 };
-};
+}

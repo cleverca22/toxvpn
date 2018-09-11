@@ -28,4 +28,4 @@ private:
     void* zmq_broadcast;
 #endif
 };
-};
+}

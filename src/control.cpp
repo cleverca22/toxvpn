@@ -30,7 +30,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
     getline(cin, cmd);
     size = cmd.length();
 #else
-    char* line = 0;
+    char* line = nullptr;
     size_t linelen = 0;
     size = getline(&line, &linelen, input);
     if(size == -1)
@@ -49,7 +49,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         for(unsigned int i = 0; i < friendCount; i++) {
             int friendid = friends[i];
             TOX_CONNECTION conn_status =
-                tox_friend_get_connection_status(tox, friendid, NULL);
+                tox_friend_get_connection_status(tox, friendid, nullptr);
             string statusString;
             switch(conn_status) {
             case TOX_CONNECTION_NONE: statusString = "offline"; break;
@@ -57,15 +57,15 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
             case TOX_CONNECTION_UDP: statusString = "udp"; break;
             }
             uint64_t lastonline =
-                tox_friend_get_last_online(tox, friendid, NULL);
+                tox_friend_get_last_online(tox, friendid, nullptr);
             size_t namesize = tox_friend_get_name_size(tox, friendid, &fqerror);
             uint8_t* friendname = new uint8_t[namesize + 1];
-            tox_friend_get_name(tox, friendid, friendname, NULL);
+            tox_friend_get_name(tox, friendid, friendname, nullptr);
             friendname[namesize] = 0;
             size_t statusSize =
-                tox_friend_get_status_message_size(tox, friendid, NULL);
+                tox_friend_get_status_message_size(tox, friendid, nullptr);
             uint8_t* status = new uint8_t[statusSize + 1];
-            tox_friend_get_status_message(tox, friendid, status, NULL);
+            tox_friend_get_status_message(tox, friendid, status, nullptr);
             status[statusSize] = 0;
             uint64_t hack = lastonline;
             fprintf(output,
@@ -80,7 +80,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         int friendid;
         ss >> friendid;
         fprintf(output, "going to kick %d\n", friendid);
-        tox_friend_delete(tox, friendid, NULL);
+        tox_friend_delete(tox, friendid, nullptr);
         interfarce->removePeer(friendid);
     } else if(buf == "add") {
         ss >> buf;
