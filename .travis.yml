@@ -1,3 +1,4 @@
+---
 language: c
 sudo: false
 compiler:
@@ -9,18 +10,18 @@ os:
 addons:
   apt:
     packages:
-    - libjsoncpp-dev
-    - libcap-dev
+      - libjsoncpp-dev
+      - libcap-dev
 cache:
   directories:
-  - $HOME/libsodium
+    - $HOME/libsodium
 
 before_script:
-  #installing libsodium, needed for Core
+  # installing libsodium, needed for Core
   - ./scripts/libsodium.sh
   - ./scripts/jsoncpp.sh
-  #creating libraries links and updating cache
-  #- sudo ldconfig > /dev/null
+  # creating libraries links and updating cache
+  # - sudo ldconfig > /dev/null
   # and toxcore
   - git clone git://github.com/TokTok/toxcore.git > /dev/null
   - cd toxcore
