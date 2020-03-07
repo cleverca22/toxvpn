@@ -89,7 +89,7 @@ void NetworkInterface::forwardPacket(Route route,
     buffer[4] = 0;
 #endif
     memcpy(buffer + OFFSET, readbuffer, size);
-    TOX_ERR_FRIEND_CUSTOM_PACKET error;
+    Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossy_packet(my_tox, route.friend_number, buffer,
                                  size + OFFSET, &error);
     switch(error) {

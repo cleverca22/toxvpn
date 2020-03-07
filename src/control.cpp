@@ -40,7 +40,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
     std::string buf;
     std::stringstream ss(cmd);
     ss >> buf;
-    TOX_ERR_FRIEND_QUERY fqerror;
+    Tox_Err_Friend_Query fqerror;
     if(buf == "list") {
         fputs("listing friends\n", output);
         size_t friendCount = tox_self_get_friend_list_size(tox);
@@ -48,7 +48,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         tox_self_get_friend_list(tox, friends);
         for(unsigned int i = 0; i < friendCount; i++) {
             int friendid = friends[i];
-            TOX_CONNECTION conn_status =
+            Tox_Connection conn_status =
                 tox_friend_get_connection_status(tox, friendid, nullptr);
             string statusString;
             switch(conn_status) {
@@ -87,7 +87,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         fprintf(output, "going to connect to %s\n", buf.c_str());
         const char* msg = "toxvpn";
         uint8_t peerbinary[TOX_ADDRESS_SIZE];
-        TOX_ERR_FRIEND_ADD error;
+        Tox_Err_Friend_Add error;
         hex_string_to_bin(buf.c_str(), peerbinary);
         tox_friend_add(tox, (uint8_t*) peerbinary, (uint8_t*) msg, strlen(msg),
                        &error);
@@ -102,7 +102,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
     } else if(buf == "whitelist") {
         ss >> buf;
         uint8_t peerbinary[TOX_PUBLIC_KEY_SIZE];
-        TOX_ERR_FRIEND_ADD error;
+        Tox_Err_Friend_Add error;
         hex_string_to_bin(buf.c_str(), peerbinary);
         tox_friend_add_norequest(tox, peerbinary, &error);
         switch(error) {
