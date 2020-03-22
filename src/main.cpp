@@ -299,6 +299,20 @@ void saveConfig(json root) {
     fclose(handle);
 }
 
+#ifdef ZMQ
+struct zmq_ctx_deleter {
+    void operator()(void *zmq) const { zmq_ctx_term(zmq); }
+};
+
+using zmq_ptr = std::unique_ptr<void, zmq_ctx_deleter>;
+#endif
+
+struct tox_options_deleter {
+    void operator()(Tox_Options *opts) const { tox_options_free(opts); }
+};
+
+using tox_options_ptr = std::unique_ptr<Tox_Options, tox_options_deleter>;
+
 int main(int argc, char** argv) {
 #ifdef USE_EPOLL
     epoll_handle = epoll_create(20);
@@ -306,7 +320,7 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef ZMQ
-    void* zmq = zmq_ctx_new();
+    zmq_ptr zmq(zmq_ctx_new());
 #endif
     ToxVPNCore toxvpn;
 
@@ -354,7 +368,7 @@ int main(int argc, char** argv) {
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
-    struct Tox_Options* opts = tox_options_new(nullptr);
+    tox_options_ptr opts(tox_options_new(nullptr));
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
@@ -484,10 +498,10 @@ int main(int argc, char** argv) {
     }
 
     want_bootstrap = true;
-    my_tox = tox_new(opts, &new_error);
+    my_tox = tox_new(opts.get(), &new_error);
     if(!my_tox) {
         opts->ipv6_enabled = false;
-        my_tox = tox_new(opts, &new_error);
+        my_tox = tox_new(opts.get(), &new_error);
     }
     switch(new_error) {
     case TOX_ERR_NEW_OK: break;
@@ -502,7 +516,6 @@ int main(int argc, char** argv) {
     assert(my_tox);
     if(opts->savedata_data)
         delete[] opts->savedata_data;
-    tox_options_free(opts);
     opts = nullptr;
 
     uint8_t toxid[TOX_ADDRESS_SIZE];
@@ -558,7 +571,7 @@ int main(int argc, char** argv) {
         puts("error, -l is linux only");
         return -1;
 #elif defined(ZMQ)
-        toxvpn.listener = new SocketListener(mynic, unixSocket, zmq);
+        toxvpn.listener = new SocketListener(mynic, unixSocket, zmq.get());
 #else
         toxvpn.listener = new SocketListener(mynic, unixSocket);
 #endif
@@ -646,9 +659,6 @@ int main(int argc, char** argv) {
     puts("shutting down");
     saveState(my_tox);
     tox_kill(my_tox);
-#ifdef ZMQ
-    zmq_ctx_term(zmq);
-#endif
     if(control)
         delete control;
     return 0;
