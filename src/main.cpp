@@ -114,7 +114,7 @@ void do_ready() {
 
 void FriendConnectionUpdate(Tox* tox,
                             uint32_t friend_number,
-                            TOX_CONNECTION connection_status,
+                            Tox_Connection connection_status,
                             void* user_data) {
     ToxVPNCore* toxvpn = static_cast<ToxVPNCore*>(user_data);
     size_t namesize = tox_friend_get_name_size(tox, friend_number, nullptr);
@@ -150,7 +150,7 @@ void FriendConnectionUpdate(Tox* tox,
 
 void MyFriendMessageCallback(Tox*,
                              uint32_t friend_number,
-                             TOX_MESSAGE_TYPE type,
+                             Tox_Message_Type type,
                              const uint8_t* message,
                              size_t length,
                              void*) {
@@ -206,7 +206,7 @@ void handle_int(int something) {
 
 void add_auto_friends(Tox* tox, ToxVPNCore* toxvpn) {
     uint8_t peerbinary[TOX_ADDRESS_SIZE];
-    TOX_ERR_FRIEND_ADD error;
+    Tox_Err_Friend_Add error;
     const char* msg = "auto-toxvpn";
     bool need_save = false;
 
@@ -233,7 +233,7 @@ void add_auto_friends(Tox* tox, ToxVPNCore* toxvpn) {
 }
 
 void connection_status(Tox* tox,
-                       TOX_CONNECTION connection_status,
+                       Tox_Connection connection_status,
                        void* user_data) {
     ToxVPNCore* toxvpn = static_cast<ToxVPNCore*>(user_data);
     uint8_t toxid[TOX_ADDRESS_SIZE];
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
     json configRoot;
 
     int opt;
-    TOX_ERR_NEW new_error;
+    Tox_Err_New new_error;
     bool stdin_is_socket = false;
     string changeIp;
     string unixSocket;
@@ -643,7 +643,7 @@ int main(int argc, char** argv) {
             }
         }
 #endif
-        TOX_CONNECTION conn_status = tox_self_get_connection_status(my_tox);
+        Tox_Connection conn_status = tox_self_get_connection_status(my_tox);
         if(conn_status == TOX_CONNECTION_NONE) {
             steady_clock::time_point now = steady_clock::now();
             duration<double> time_span =
