@@ -5,14 +5,14 @@
 with rec {
   enableDebugging = true;
 
-  libtoxcoreLocked = stdenv.lib.overrideDerivation libtoxcore (old: {
+  libtoxcoreLocked = stdenv.lib.overrideDerivation (libtoxcore.override { libconfig = null; }) (old: {
     name = "libtoxcore-20160907";
 
     src = fetchFromGitHub {
       owner  = "TokTok";
       repo   = "c-toxcore";
-      rev    = "1387c8f15032cab1af1c6444621b62af8d3a5494";
-      sha256 = "1wd5l56fb1lrrjxsgnzr6199kiw81jipyr8f395gbka4bzysilzq";
+      rev    = "ef7058422eec1c8b90208bb3522fce28374feb58";
+      sha256 = "1fv8y80n0zc8886qa46m5bzyqy1d3vg88jjkjdssc7bwlgkcm383";
     };
 
     dontStrip = enableDebugging;
