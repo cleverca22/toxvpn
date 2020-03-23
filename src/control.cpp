@@ -89,7 +89,7 @@ ssize_t Control::handleReadData(Tox* tox, ToxVPNCore* toxvpn) {
         uint8_t peerbinary[TOX_ADDRESS_SIZE];
         Tox_Err_Friend_Add error;
         hex_string_to_bin(buf.c_str(), peerbinary);
-        tox_friend_add(tox, (uint8_t*) peerbinary, (uint8_t*) msg, strlen(msg),
+        tox_friend_add(tox, (const uint8_t*) peerbinary, (const uint8_t*) msg, strlen(msg),
                        &error);
         switch(error) {
         case TOX_ERR_FRIEND_ADD_OK: saveState(tox); break;

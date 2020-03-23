@@ -81,7 +81,7 @@ void MyFriendRequestCallback(Tox* tox,
                              void* user_data) {
     ToxVPNCore* toxvpn = static_cast<ToxVPNCore*>(user_data);
     char tox_printable_id[TOX_PUBLIC_KEY_SIZE * 2 + 1];
-    string msg((char*) message, length);
+    string msg((const char*) message, length);
 
     memset(tox_printable_id, 0, sizeof(tox_printable_id));
     to_hex(tox_printable_id, public_key, TOX_PUBLIC_KEY_SIZE);
@@ -154,7 +154,7 @@ void MyFriendMessageCallback(Tox*,
                              const uint8_t* message,
                              size_t length,
                              void*) {
-    string msg((char*) message, length);
+    string msg((const char*) message, length);
     cout << "message" << friend_number << msg << type << endl;
 }
 
@@ -214,7 +214,7 @@ void add_auto_friends(Tox* tox, ToxVPNCore* toxvpn) {
         it != toxvpn->auto_friends.end(); ++it) {
         string toxid = *it;
         hex_string_to_bin(toxid.c_str(), peerbinary);
-        tox_friend_add(tox, (uint8_t*) peerbinary, (uint8_t*) msg, strlen(msg),
+        tox_friend_add(tox, (const uint8_t*) peerbinary, (const uint8_t*) msg, strlen(msg),
                        &error);
         switch(error) {
         case TOX_ERR_FRIEND_ADD_OK:
