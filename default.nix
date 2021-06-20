@@ -5,7 +5,7 @@
 with rec {
   enableDebugging = true;
 
-  libtoxcoreLocked = stdenv.lib.overrideDerivation (libtoxcore.override { libconfig = null; }) (old: {
+  libtoxcoreLocked = lib.overrideDerivation (libtoxcore.override { libconfig = null; }) (old: {
     name = "libtoxcore-20160907";
 
     src = fetchFromGitHub {
@@ -41,7 +41,7 @@ stdenv.mkDerivation {
 
   cmakeFlags = (if_systemd [ "-DSYSTEMD=1" ]) ++ (lib.optional (zeromq != null) "-DZMQ=1");
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "A tool for making tunneled connections over Tox";
     homepage    = "https://github.com/cleverca22/toxvpn";
     license     = licenses.gpl3;
