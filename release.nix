@@ -7,4 +7,11 @@ let
   merge = a: b: a // b;
   mergeList = builtins.foldl' merge {};
   makeJobs = systems: mergeList (map makeJob systems);
-in { toxvpn = makeJobs [ "x86_64-linux" "x86_64-darwin" ]; }
+  makeRPM = system: diskImageFun: extraPackages: with import nixpkgs { inherit system; };
+  releaseTools.rpmBuild rec {
+    name = "toxvpn-rpm";
+    src = ./.;
+    diskImage = (diskImageFun vmTools.diskImageFuns) { inherit extraPackages; };
+    memSize = 1024;
+  };
+in { toxvpn = makeJobs [ "x86_64-linux" /*"x86_64-darwin"*/ ]; }
