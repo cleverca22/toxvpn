@@ -67,6 +67,49 @@ void systemRouteSingle(int ifindex, struct in_addr peer, const char* gateway) {
 
     send_request();
 }
+
+void systemRouteDirect(int ifindex, struct in_addr peer) {
+  struct rtattr* rtap;
+  unsigned char pn = 32;
+
+  // initialize RTNETLINK request buffer
+  bzero(&req, sizeof(req));
+
+  // compute the initial length of the service request
+  int rtl = sizeof(struct rtmsg);
+
+  // add first attrib
+  // set destination ip addr and increment the netlink buf size
+  rtap = (struct rtattr*) req.buf;
+  rtap->rta_type = RTA_DST;
+  rtap->rta_len = (unsigned short) (sizeof(struct rtattr) + 4);
+  memcpy(((char*) rtap) + sizeof(struct rtattr), &peer, 4);
+  rtl += rtap->rta_len;
+
+  // add second attrib
+  // set ifc index andincrement the netlink size
+  rtap = (struct rtattr*) (((char*) rtap) + rtap->rta_len);
+  rtap->rta_type = RTA_OIF;
+  rtap->rta_len = (unsigned short) (sizeof(struct rtattr) + 4);
+  memcpy(((char*) rtap) + sizeof(struct rtattr), &ifindex, 4);
+  rtl += rtap->rta_len;
+
+  // setup netlink header
+  req.nl.nlmsg_len = NLMSG_LENGTH(rtl);
+  req.nl.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE;
+  req.nl.nlmsg_type = RTM_NEWROUTE;
+
+  // setup service header
+  req.rt.rtm_family = AF_INET;
+  req.rt.rtm_table = RT_TABLE_MAIN;
+  req.rt.rtm_protocol = RTPROT_STATIC;
+  req.rt.rtm_scope = RT_SCOPE_UNIVERSE;
+  req.rt.rtm_type = RTN_UNICAST;
+  req.rt.rtm_dst_len = pn;
+
+  send_request();
+}
+
 void send_request() {
     struct sockaddr_nl pa;
     bzero(&pa, sizeof(pa));

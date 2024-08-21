@@ -43,19 +43,19 @@ void to_hex(char* a, const uint8_t* p, int size) {
     }
 }
 namespace ToxVPN {
+
+int netmode = MODE_TUN;
+
 void saveState(Tox* tox) {
-    size_t size = tox_get_savedata_size(tox);
-    uint8_t* savedata = new uint8_t[size];
-    tox_get_savedata(tox, savedata);
-    int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
-    assert(fd);
-#ifndef NDEBUG
-    ssize_t written =
-#endif
-        write(fd, savedata, size);
-    assert(written > 0); // FIXME: check even if NDEBUG is disabled
-    close(fd);
-    delete[] savedata;
+  size_t size = tox_get_savedata_size(tox);
+  uint8_t* savedata = new uint8_t[size];
+  tox_get_savedata(tox, savedata);
+  int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
+  assert(fd);
+  ssize_t written = write(fd, savedata, size);
+  assert(written > 0); // FIXME: check even if NDEBUG is disabled
+  close(fd);
+  delete[] savedata;
 }
 
 void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
@@ -170,33 +170,35 @@ void MyFriendStatusCallback(Tox* tox,
                             const uint8_t* message,
                             size_t length,
                             void*) {
-    printf("status msg #%d %s\n", friend_number, message);
-    try {
-        json root = json::parse(std::string((const char*) message, length));
-        json ip = root["ownip"];
-        if(ip.is_string()) {
-            std::string peerip = ip;
-            struct in_addr peerBinary;
-            inet_pton(AF_INET, peerip.c_str(), &peerBinary);
-            printf("setting friend#%d ip to %s\n", friend_number,
-                   peerip.c_str());
-            mynic->setPeerIp(peerBinary, friend_number);
-        } else {
-            // FIXME: handle error condition instead of silently failing
-        }
-    } catch(...) { printf("unable to parse status, ignoring\n"); }
-    saveState(tox);
-    fflush(stdout);
+  uint8_t pubkey[TOX_PUBLIC_KEY_SIZE];
+  tox_friend_get_public_key(tox, friend_number, &pubkey[0], NULL);
+  printf("status msg #%d %s\n", friend_number, message);
+  try {
+    json root = json::parse(std::string((const char*) message, length));
+    json ip = root["ownip"];
+    int peer_netmode = MODE_TUN;
+    if (root["mode"] == "tap") peer_netmode = MODE_TAP;
+    if(ip.is_string()) {
+      std::string peerip = ip;
+      struct in_addr peerBinary;
+      inet_pton(AF_INET, peerip.c_str(), &peerBinary);
+      printf("setting friend#%d ip to %s\n", friend_number,
+             peerip.c_str());
+      mynic->setPeerIp(peerBinary, friend_number, peer_netmode, pubkey);
+    } else {
+      // FIXME: handle error condition instead of silently failing
+    }
+  } catch(...) { printf("unable to parse status, ignoring\n"); }
+  saveState(tox);
+  fflush(stdout);
 }
 
-void MyFriendLossyPacket(Tox*,
-                         uint32_t friend_number,
-                         const uint8_t* data,
-                         size_t length,
-                         void*) {
-    if(data[0] == 200) {
-        mynic->processPacket(data + 1, length - 1, friend_number);
-    }
+void MyFriendLossyPacket(Tox *tox, uint32_t friend_number, const uint8_t* data, size_t length, void*) {
+  if(data[0] == 200) {
+    uint8_t pubkey[TOX_PUBLIC_KEY_SIZE];
+    tox_friend_get_public_key(tox, friend_number, &pubkey[0], NULL);
+    mynic->processPacket(data + 1, length - 1, friend_number, MODE_TUN, pubkey);
+  }
 }
 
 void handle_int(int something) {
@@ -288,14 +290,14 @@ std::string readFile(std::string path) {
 }
 
 void saveConfig(json root) {
-    std::string json = root.dump();
+    std::string json_str = root.dump();
     FILE* handle = fopen("config.json", "w");
     if(!handle) {
         cerr << "unable to open config file for writting" << endl;
         exit(-1);
     }
-    const char* data = json.c_str();
-    fwrite(data, json.length(), 1, handle);
+    const char* data = json_str.c_str();
+    fwrite(data, json_str.length(), 1, handle);
     fclose(handle);
 }
 
@@ -372,7 +374,7 @@ int main(int argc, char** argv) {
     opts->start_port = 33445;
     opts->end_port = 33445 + 100;
     struct passwd* target_user = nullptr;
-    while((opt = getopt(argc, argv, "shi:l:u:p:a:")) != -1) {
+    while((opt = getopt(argc, argv, "m:shi:l:u:p:a:")) != -1) {
         switch(opt) {
         case 's': stdin_is_socket = true; break;
         case 'h':
@@ -400,10 +402,23 @@ int main(int argc, char** argv) {
             opts->start_port = opts->end_port =
                 (uint16_t) strtol(optarg, nullptr, 10);
             break;
-        case 'a': toxvpn.auto_friends.push_back(string(optarg)); break;
+        case 'a':
+          toxvpn.auto_friends.push_back(string(optarg));
+          break;
+        case 'm':
+          if (strcmp(optarg, "tun") == 0) {
+            netmode = MODE_TUN;
+          } else if (strcmp(optarg, "tap") == 0) {
+            netmode = MODE_TAP;
+          } else {
+            fprintf(stderr, "invalid mode: %s\n", optarg);
+            exit(-1);
+          }
+          break;
         }
     }
     toxvpn.auto_friends.shrink_to_fit();
+
 
     puts("creating interface");
     mynic = new NetworkInterface();
@@ -448,15 +463,17 @@ int main(int argc, char** argv) {
         printf("unable to cd into $HOME(%s): %s\n", target_user->pw_dir, strerror(errno));
         return -1;
     }
-    if(chdir(".toxvpn")) {
-        mkdir(".toxvpn"
-#ifndef WIN32
-              ,
-              0755
+  if(chdir(".toxvpn")) {
+#ifdef WIN32
+    mkdir(".toxvpn");
+#else
+    mkdir(".toxvpn", 0755);
 #endif
-              );
-        chdir(".toxvpn");
+    if (chdir(".toxvpn")) {
+      perror("chdir .toxvpn still fails");
+      return -1;
     }
+  }
 
     try {
         std::string config = readFile("config.json");
@@ -481,6 +498,11 @@ int main(int argc, char** argv) {
     }
 
     json root{{"ownip", configRoot["myip"]}};
+    if (netmode == MODE_TAP) {
+      root["mode"] = "tap";
+    } else {
+      root["mode"] = "tun";
+    }
 
     Tox* my_tox;
     bool want_bootstrap = false;

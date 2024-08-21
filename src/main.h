@@ -81,6 +81,12 @@
 namespace ToxVPN {
 class SocketListener;
 
+enum {
+  MODE_TUN, MODE_TAP
+};
+
+extern int netmode;
+
 class bootstrap_node {
 public:
     bootstrap_node(std::string ipv4_in, uint16_t port_in, std::string pubkey_in)

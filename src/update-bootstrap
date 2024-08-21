@@ -1,0 +1,1 @@
+curl https://nodes.tox.chat/json -o res/bootstrap.json
