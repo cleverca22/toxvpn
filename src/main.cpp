@@ -371,8 +371,8 @@ int main(int argc, char** argv) {
     string changeIp;
     string unixSocket;
     tox_options_ptr opts(tox_options_new(nullptr));
-    opts->start_port = 33445;
-    opts->end_port = 33445 + 100;
+    tox_options_set_start_port(opts.get(), 33445);
+    tox_options_set_end_port(opts.get(), 33445 + 100);
     struct passwd* target_user = nullptr;
     while((opt = getopt(argc, argv, "m:shi:l:u:p:a:")) != -1) {
         switch(opt) {
@@ -398,10 +398,12 @@ int main(int argc, char** argv) {
             assert(target_user);
 #endif
             break;
-        case 'p':
-            opts->start_port = opts->end_port =
-                (uint16_t) strtol(optarg, nullptr, 10);
+        case 'p': {
+            const uint16_t port = (uint16_t) strtol(optarg, nullptr, 10);
+            tox_options_set_start_port(opts.get(), port);
+            tox_options_set_end_port(opts.get(), port);
             break;
+        }
         case 'a':
           toxvpn.auto_friends.push_back(string(optarg));
           break;
@@ -507,37 +509,35 @@ int main(int argc, char** argv) {
     Tox* my_tox;
     bool want_bootstrap = false;
     int oldstate = open("savedata", O_RDONLY);
+    std::vector<uint8_t> temp;
     if(oldstate >= 0) {
         struct stat info;
         fstat(oldstate, &info);
-        uint8_t* temp = new uint8_t[info.st_size];
-        ssize_t size = read(oldstate, temp, info.st_size);
+        temp.resize(info.st_size);
+        ssize_t size = read(oldstate, temp.data(), info.st_size);
         close(oldstate);
         assert(size == info.st_size);
-        opts->savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
-        opts->savedata_data = temp;
-        opts->savedata_length = size;
+        tox_options_set_savedata_type(opts.get(), TOX_SAVEDATA_TYPE_TOX_SAVE);
+        tox_options_set_savedata_data(opts.get(), temp.data(), size);
     }
 
     want_bootstrap = true;
     my_tox = tox_new(opts.get(), &new_error);
     if(!my_tox) {
-        opts->ipv6_enabled = false;
+        tox_options_set_ipv6_enabled(opts.get(), false);
         my_tox = tox_new(opts.get(), &new_error);
     }
     switch(new_error) {
     case TOX_ERR_NEW_OK: break;
     case TOX_ERR_NEW_PORT_ALLOC:
-        cerr << "unable to bind to a port between " << opts->start_port
-             << " and " << opts->end_port << endl;
+        cerr << "unable to bind to a port between " << tox_options_get_start_port(opts.get())
+             << " and " << tox_options_get_end_port(opts.get()) << endl;
         return 1;
     default:
         cerr << "unhandled error code on tox_new: " << new_error << endl;
         return 2;
     }
     assert(my_tox);
-    if(opts->savedata_data)
-        delete[] opts->savedata_data;
     opts = nullptr;
 
     uint8_t toxid[TOX_ADDRESS_SIZE];
