@@ -104,7 +104,7 @@ public:
     std::chrono::steady_clock::time_point last_boostrap;
 };
 
-void saveState(Tox* tox);
+bool saveState(Tox* tox);
 void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn);
 }
 
