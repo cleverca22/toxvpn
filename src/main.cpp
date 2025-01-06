@@ -46,7 +46,7 @@ namespace ToxVPN {
 
 int netmode = MODE_TUN;
 
-void saveState(Tox* tox) {
+bool saveState(Tox* tox) {
   size_t size = tox_get_savedata_size(tox);
   uint8_t* savedata = new uint8_t[size];
   tox_get_savedata(tox, savedata);
@@ -56,6 +56,7 @@ void saveState(Tox* tox) {
   assert(written > 0); // FIXME: check even if NDEBUG is disabled
   close(fd);
   delete[] savedata;
+  return written > 0;
 }
 
 void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
@@ -679,7 +680,9 @@ int main(int argc, char** argv) {
     notify("STOPPING=1");
 #endif
     puts("shutting down");
-    saveState(my_tox);
+    if (!saveState(my_tox)) {
+        cerr << "unable to save state" << endl;
+    }
     tox_kill(my_tox);
     if(control)
         delete control;
