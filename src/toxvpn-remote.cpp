@@ -64,7 +64,7 @@ void read_socket(int socket) {
     write(STDOUT_FILENO, buffer, count);
 }
 
-int main(int argc, char** argv) {
+int main(int, char**) {
 #ifdef ZMQ
     void* zmq = zmq_ctx_new();
     void* subscriber = zmq_socket(zmq, ZMQ_SUB);

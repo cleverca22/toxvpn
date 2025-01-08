@@ -5,18 +5,26 @@
 with rec {
   enableDebugging = true;
 
-  libtoxcoreLocked = lib.overrideDerivation (libtoxcore.override { libconfig = null; }) (old: {
-    name = "libtoxcore-20160907";
+  libtoxcoreLocked = (libtoxcore.override { libconfig = null; }).overrideAttrs(old: {
+    name = "libtoxcore-20250101";
 
     src = fetchFromGitHub {
-      owner  = "TokTok";
-      repo   = "c-toxcore";
-      rev    = "ef7058422eec1c8b90208bb3522fce28374feb58";
-      sha256 = "1fv8y80n0zc8886qa46m5bzyqy1d3vg88jjkjdssc7bwlgkcm383";
+      owner  = "cleverca22";
+      repo   = "toxcore";
+      rev    = "e5a5c75eb889be932d6c14f3edcfaf2077fba231";
+      hash   = "sha256-WLHRW+2Phxv1U3qxb9lQSJhGQ/573O+QDkTPUyjivnc=";
+      fetchSubmodules = true;
     };
 
     dontStrip = enableDebugging;
+    cmakeFlags = [
+      "-DDHT_BOOTSTRAP=ON"
+      "-DBOOTSTRAP_DAEMON=OFF"
+      "-DENABLE_SHARED=ON"
+      "-DENABLE_STATIC=ON"
+    ];
   });
+
 
   systemdOrNull = if stdenv.system == "x86_64-darwin" then null else systemd;
 

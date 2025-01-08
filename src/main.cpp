@@ -605,6 +605,7 @@ int main(int argc, char** argv) {
     }
     fflush(stdout);
     while(keep_running) {
+        int interval = tox_iteration_interval(my_tox);
 #ifdef USE_SELECT
         FD_ZERO(&readset);
         struct timeval timeout;
@@ -617,9 +618,15 @@ int main(int argc, char** argv) {
             maxfd = std::max(maxfd, control->populate_fdset(&readset));
         if(toxvpn.listener)
             maxfd = std::max(maxfd, toxvpn.listener->populate_fdset(&readset));
+        {
+          int udp_sock = tox_get_udp_socket(my_tox);
+          FD_SET(udp_sock, &readset);
+          maxfd = std::max(maxfd, udp_sock);
+          interval = 1000;
+        }
 #endif
+
 #endif
-        int interval = tox_iteration_interval(my_tox);
 #ifdef USE_SELECT
         timeout.tv_sec = 0;
         timeout.tv_usec = interval * 1000;

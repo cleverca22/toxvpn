@@ -105,12 +105,14 @@ void dump_packet(uint8_t* buffer, ssize_t size) {
 }
 void NetworkInterface::handleReadData() {
   uint8_t readbuffer[1500];
-  ssize_t size = read(fd, readbuffer, 1500);
-  if(size < 0) {
+  ssize_t size_ = read(fd, readbuffer, 1500);
+  if(size_ < 0) {
       printf("unable to read from tun %d, %s\n", fd, strerror(errno));
       exit(-2);
       return;
   }
+  uint32_t size = (uint32_t)size_;
+
   if (netmode == MODE_TAP) {
     struct tun_pi *pi = (struct tun_pi*)readbuffer;
     ethernet_header *eth_header = (ethernet_header*)(readbuffer + 4);
@@ -176,8 +178,10 @@ void NetworkInterface::handleReadData() {
       }
     }
     struct in_addr* dest = (struct in_addr*) (readbuffer + 20);
-    printf("read %d bytes on master interface for %s\n",size,inet_ntoa(*dest));
-    dump_packet(readbuffer,size);
+
+    //printf("read %d bytes on master interface for %s\n", size, inet_ntoa(*dest));
+    //dump_packet(readbuffer,size);
+
     Route route;
     if (findRoute(&route, *dest)) {
       struct {
@@ -211,6 +215,8 @@ void NetworkInterface::forwardPacket(Route route, const uint8_t* readbuffer, ssi
     size -= offset;
     memcpy(buffer + 1 + sizeof(tun_pi), readbuffer + offset, size);
     size += sizeof(tun_pi);
+  } else {
+    // TODO, sending to TAP
   }
   Tox_Err_Friend_Custom_Packet error;
   tox_friend_send_lossy_packet(my_tox, route.friend_number, buffer,
@@ -282,7 +288,6 @@ void NetworkInterface::processPacket(const uint8_t* data, size_t size, int frien
 
   if (fd) {
     if (source_mode == MODE_TUN) {
-      printf("got TUN packet from peer\n");
       // received packet starts with PI + IP header, insert a ethernet header
       struct {
         struct tun_pi pi;
