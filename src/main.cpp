@@ -349,7 +349,7 @@ int main(int argc, char** argv) {
             toxvpn.nodes.push_back(bootstrap_node(ipv4, port, pubkey));
         }
     } catch(...) {
-      cerr << "exception while trying to load bootstrap nodes";
+      cerr << "exception while trying to load bootstrap nodes\n";
       return -2;
     }
 
