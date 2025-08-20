@@ -3,7 +3,7 @@
 }:
 
 with rec {
-  enableDebugging = true;
+  enableDebugging = false;
 
   libtoxcoreLocked = (libtoxcore.override { libconfig = null; }).overrideAttrs(old: {
     name = "libtoxcore-20250101";
