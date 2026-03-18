@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <arpa/inet.h>
 #include <iostream>
 #include <linux/if_tun.h>
 #include <stdio.h>
@@ -13,6 +14,17 @@
 
 using namespace std;
 using namespace ToxVPN;
+
+namespace {
+
+const char *ipv4ToString(const struct in_addr &addr, char *buffer, size_t buffer_size) {
+  if (inet_ntop(AF_INET, &addr, buffer, buffer_size) == nullptr) {
+    snprintf(buffer, buffer_size, "<invalid>");
+  }
+  return buffer;
+}
+
+}  // namespace
 
 typedef struct {
   uint16_t hardware_type;
@@ -124,9 +136,9 @@ void NetworkInterface::handleReadData() {
       //dump_packet(ip_header, size - 4 - 14);
       struct in_addr *src = (struct in_addr*) (ip_header + 12);
       struct in_addr *dest = (struct in_addr*) (ip_header + 16);
-      char src_str[16], dst_str[16];
-      strncpy(src_str, inet_ntoa(*src), 16);
-      strncpy(dst_str, inet_ntoa(*dest), 16);
+      char src_str[INET_ADDRSTRLEN], dst_str[INET_ADDRSTRLEN];
+      ipv4ToString(*src, src_str, sizeof(src_str));
+      ipv4ToString(*dest, dst_str, sizeof(dst_str));
       //printf("%ld bytes for %s -> %s\n", size, src_str, dst_str);
       if (mac_is_multicast(eth_header->dest)) {
         //printf("mcast to %s\n", dst_str);
@@ -197,7 +209,8 @@ void NetworkInterface::handleReadData() {
       uint32_t newsize = sizeof(ethernet_header) + size;
       forwardPacket(route, (uint8_t*)&newpacket, newsize);
     } else {
-      printf("no route found for %s\n", inet_ntoa(*dest));
+      char dst_str[INET_ADDRSTRLEN];
+      printf("no route found for %s\n", ipv4ToString(*dest, dst_str, sizeof(dst_str)));
     }
   }
 }
