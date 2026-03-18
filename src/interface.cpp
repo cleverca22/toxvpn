@@ -14,6 +14,19 @@
 using namespace std;
 using namespace ToxVPN;
 
+namespace {
+
+constexpr size_t kInterfaceReadBufferSize = 1500;
+constexpr size_t kForwardPacketBufferSize = 1600;
+
+void copyBytes(uint8_t *dest, const uint8_t *src, size_t copy_len) {
+  for (size_t i = 0; i < copy_len; ++i) {
+    dest[i] = src[i];
+  }
+}
+
+}  // namespace
+
 typedef struct {
   uint16_t hardware_type;
   uint16_t protocol_type;
@@ -104,8 +117,8 @@ void dump_packet(uint8_t* buffer, ssize_t size) {
     printf("\n");
 }
 void NetworkInterface::handleReadData() {
-  uint8_t readbuffer[1500];
-  ssize_t size_ = read(fd, readbuffer, 1500);
+  uint8_t readbuffer[kInterfaceReadBufferSize];
+  ssize_t size_ = read(fd, readbuffer, sizeof(readbuffer));
   if(size_ < 0) {
       printf("unable to read from tun %d, %s\n", fd, strerror(errno));
       exit(-2);
@@ -169,6 +182,10 @@ void NetworkInterface::handleReadData() {
       printf("UNK flags: 0x%x, proto: 0x%x\n", pi->flags, pi->proto);
     }
   } else {
+    if (size < sizeof(struct tun_pi) + 20) {
+      fprintf(stderr, "short TUN packet (%u bytes)\n", size);
+      return;
+    }
     struct tun_pi *pi = (struct tun_pi*)readbuffer;
     for(unsigned int i = 0; i < sizeof(required); i++) {
       if(readbuffer[i] != required[i]) {
@@ -187,13 +204,22 @@ void NetworkInterface::handleReadData() {
       struct {
         struct tun_pi pi;
         ethernet_header eth;
-        uint8_t rest[1500];
+        uint8_t rest[kInterfaceReadBufferSize];
       } newpacket;
+      const size_t packet_size = static_cast<size_t>(size);
+      const size_t pi_size = sizeof(struct tun_pi);
+      const size_t payload_copy_len = packet_size - pi_size;
+      const size_t source_payload_capacity = sizeof(readbuffer) - pi_size;
+      if (payload_copy_len > source_payload_capacity ||
+          payload_copy_len > sizeof(newpacket.rest)) {
+        fprintf(stderr, "oversized TUN payload (%zu bytes)\n", payload_copy_len);
+        return;
+      }
       newpacket.pi = *pi;
       pubkey_to_mac(route.pubkey, newpacket.eth.dest);
       memcpy(newpacket.eth.src, mymac, 6);
       newpacket.eth.type = newpacket.pi.proto;
-      memcpy(newpacket.rest, readbuffer+4, size-4);
+      copyBytes(newpacket.rest, readbuffer + pi_size, payload_copy_len);
       uint32_t newsize = sizeof(ethernet_header) + size;
       forwardPacket(route, (uint8_t*)&newpacket, newsize);
     } else {
@@ -207,16 +233,36 @@ void NetworkInterface::handleReadData() {
 // TAP based targets want the whole packet
 // the 200 prefix is tox specific
 void NetworkInterface::forwardPacket(Route route, const uint8_t* readbuffer, ssize_t size) {
-  uint8_t buffer[1600];
+  uint8_t buffer[kForwardPacketBufferSize];
+  if (size <= 0) {
+    fprintf(stderr, "dropping empty packet\n");
+    return;
+  }
+
+  buffer[0] = 200;
   if (route.netmode == MODE_TUN) {
-    buffer[0] = 200;
-    memcpy(buffer + 1, readbuffer, sizeof(tun_pi));
-    int offset = sizeof(tun_pi) + sizeof(ethernet_header);
-    size -= offset;
-    memcpy(buffer + 1 + sizeof(tun_pi), readbuffer + offset, size);
-    size += sizeof(tun_pi);
+    const size_t offset = sizeof(struct tun_pi) + sizeof(ethernet_header);
+    const size_t packet_size = static_cast<size_t>(size);
+    if (packet_size < offset) {
+      fprintf(stderr, "packet too short for TUN forwarding (%ld bytes)\n", size);
+      return;
+    }
+    const size_t payload_copy_len = packet_size - offset;
+    const size_t tun_header_copy_len = sizeof(struct tun_pi);
+    if (payload_copy_len > sizeof(buffer) - 1 - tun_header_copy_len) {
+      fprintf(stderr, "packet too large for TUN forwarding (%zu bytes)\n", payload_copy_len);
+      return;
+    }
+    copyBytes(buffer + 1, readbuffer, tun_header_copy_len);
+    copyBytes(buffer + 1 + tun_header_copy_len, readbuffer + offset, payload_copy_len);
+    size = tun_header_copy_len + payload_copy_len;
   } else {
-    // TODO, sending to TAP
+    const size_t packet_copy_len = static_cast<size_t>(size);
+    if (packet_copy_len > sizeof(buffer) - 1) {
+      fprintf(stderr, "packet too large for TAP forwarding (%ld bytes)\n", size);
+      return;
+    }
+    copyBytes(buffer + 1, readbuffer, packet_copy_len);
   }
   Tox_Err_Friend_Custom_Packet error;
   tox_friend_send_lossy_packet(my_tox, route.friend_number, buffer,
@@ -292,15 +338,24 @@ void NetworkInterface::processPacket(const uint8_t* data, size_t size, int frien
       struct {
         struct tun_pi pi;
         ethernet_header eth;
-        uint8_t rest[1500];
+        uint8_t rest[kInterfaceReadBufferSize];
       } __attribute__((__packed__)) newpacket;
+      if (size < sizeof(struct tun_pi)) {
+        fprintf(stderr, "short inbound TUN packet (%zu bytes)\n", size);
+        return;
+      }
+      const size_t payload_copy_len = size - sizeof(struct tun_pi);
+      if (payload_copy_len > sizeof(newpacket.rest)) {
+        fprintf(stderr, "oversized inbound TUN payload (%zu bytes)\n", payload_copy_len);
+        return;
+      }
       newpacket.pi.flags = 0;
       newpacket.pi.proto = htons(0x800);
       memcpy(newpacket.eth.dest, mymac, 6);
       pubkey_to_mac(pubkey, newpacket.eth.src);
       newpacket.eth.type = htons(0x800);
-      memcpy(newpacket.rest, data+4, size-4);
-      uint32_t newsize = sizeof(struct tun_pi) + sizeof(ethernet_header) + size - 4;
+      copyBytes(newpacket.rest, data + sizeof(struct tun_pi), payload_copy_len);
+      uint32_t newsize = sizeof(struct tun_pi) + sizeof(ethernet_header) + payload_copy_len;
       send_pi_packet_to_kernel((uint8_t*)&newpacket, newsize);
     } else {
       ret = write(fd, data, size);
@@ -313,12 +368,25 @@ void NetworkInterface::processPacket(const uint8_t* data, size_t size, int frien
 // incoming packet is always in the form of PI+ETH+IP+...
 void NetworkInterface::send_pi_packet_to_kernel(const uint8_t* data, uint32_t size) {
   if(fd) {
-    uint8_t newpacket[1600];
+    uint8_t newpacket[kForwardPacketBufferSize];
     if (netmode == MODE_TUN) {
       // need to strip ethernet header
-      memcpy(newpacket, data, sizeof(struct tun_pi));
-      memcpy(newpacket + sizeof(struct tun_pi), data + sizeof(struct tun_pi) + sizeof(ethernet_header), size - sizeof(struct tun_pi) + sizeof(ethernet_header));
-      size = size - sizeof(ethernet_header);
+      const size_t header_size = sizeof(struct tun_pi) + sizeof(ethernet_header);
+      if (size < header_size) {
+        fprintf(stderr, "packet too short to strip ethernet header (%u bytes)\n", size);
+        return;
+      }
+      const size_t payload_copy_len = size - header_size;
+      if (payload_copy_len > sizeof(newpacket) - sizeof(struct tun_pi)) {
+        fprintf(stderr, "packet too large for kernel write (%zu bytes)\n",
+                sizeof(struct tun_pi) + payload_copy_len);
+        return;
+      }
+      copyBytes(newpacket, data, sizeof(struct tun_pi));
+      copyBytes(newpacket + sizeof(struct tun_pi),
+                data + header_size,
+                payload_copy_len);
+      size -= sizeof(ethernet_header);
       data = newpacket;
     }
     ssize_t ret = write(fd, data, size);
