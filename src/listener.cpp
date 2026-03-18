@@ -79,25 +79,25 @@ void SocketListener::broadcast(const char* msg) {
   printf("in broadcast with '%s'\n", msg);
 #ifdef ZMQ
     zmq_msg_t header;
-    char* hack = new char[4];
-    strcpy(hack, "all");
-    hack[3] = 0;
+    const char topic[] = "all";
 #ifndef NDEBUG
     int rc =
 #endif
-        zmq_msg_init_data(&header, hack, 3, nullptr, nullptr);
+        zmq_msg_init_size(&header, sizeof(topic) - 1);
     assert(rc == 0);
+    memcpy(zmq_msg_data(&header), topic, sizeof(topic) - 1);
     zmq_msg_send(&header, zmq_broadcast, ZMQ_SNDMORE);
-
-    char* copy = new char[strlen(msg)];
-    strncpy(copy, msg, strlen(msg));
+    zmq_msg_close(&header);
 
     zmq_msg_t msg_out;
+    const size_t msg_len = strlen(msg);
 #ifndef NDEBUG
     rc =
 #endif
-        zmq_msg_init_data(&msg_out, (void*) copy, strlen(msg), nullptr, nullptr);
+        zmq_msg_init_size(&msg_out, msg_len);
     assert(rc == 0);
+    memcpy(zmq_msg_data(&msg_out), msg, msg_len);
     zmq_msg_send(&msg_out, zmq_broadcast, 0);
+    zmq_msg_close(&msg_out);
 #endif
 }
